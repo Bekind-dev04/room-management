@@ -605,6 +605,8 @@ select.form-control {
     border-radius: var(--border-radius-lg);
     overflow: hidden;
     transition: all 0.3s ease;
+    color: #111827;
+    /* Global dark text for the card */
 }
 
 .bill-card:hover {
@@ -623,11 +625,30 @@ select.form-control {
 .bill-room {
     font-size: 1.4rem;
     font-weight: 700;
+    color: #1a1a2e;
+    /* Dark fallback */
+}
+
+.bill-card.vacant .bill-room {
+    color: #991b1b;
+    /* Dark red for vacant room number */
+}
+
+.bill-card.occupied .bill-room {
+    color: #4f46e5;
+    /* Indigo for occupied room number */
 }
 
 .bill-tenant {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
+    color: #4b5563;
+    /* Darker gray for better contrast on light Bg */
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.bill-invoice {
+    color: #6b7280;
+    font-size: 0.85rem;
 }
 
 .bill-body {
@@ -638,7 +659,8 @@ select.form-control {
     display: flex;
     justify-content: space-between;
     padding: 12px 0;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    /* Softer dark border */
 }
 
 .bill-row:last-child {
@@ -648,23 +670,27 @@ select.form-control {
 .bill-row.total {
     font-size: 1.2rem;
     font-weight: 700;
-    color: var(--success);
+    color: #059669;
+    /* Solid green for legibility */
     padding-top: 16px;
     margin-top: 8px;
-    border-top: 2px solid var(--border-color);
+    border-top: 2px solid rgba(0, 0, 0, 0.05);
 }
 
 .bill-label {
-    color: var(--text-secondary);
+    color: #374151;
+    /* Dark gray for labels */
 }
 
 .bill-value {
-    font-weight: 500;
+    font-weight: 600;
+    color: #111827;
+    /* Near black for values */
 }
 
 .bill-detail {
     font-size: 0.85rem;
-    color: var(--text-muted);
+    color: #6b7280;
 }
 
 .bill-footer {
@@ -1050,38 +1076,84 @@ select.form-control {
 
 
 .room-status-badge {
-    font-size: 0.75rem;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-weight: 500;
-    margin-left: 8px;
+    font-size: 0.85rem;
+    padding: 3px 12px;
+    border-radius: 14px;
+    font-weight: 700;
+    margin-left: 10px;
     vertical-align: middle;
+    text-transform: uppercase;
 }
 
 .room-status-badge.occupied {
-    background: rgba(124, 58, 237, 0.15);
-    color: var(--accent-primary);
-    border: 1px solid rgba(124, 58, 237, 0.2);
+    background: #7c3aed;
+    color: white;
+    border: 1px solid #7c3aed;
+    box-shadow: 0 2px 4px rgba(124, 58, 237, 0.3);
 }
 
 .room-status-badge.vacant {
-    background: rgba(100, 116, 139, 0.1);
-    color: var(--text-muted);
-    border: 1px solid rgba(100, 116, 139, 0.1);
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
 }
 
 .bill-card.vacant {
-    opacity: 0.85;
-    border-style: dashed;
+    opacity: 1;
+    /* Removed opacity for better readability */
+    border: 2px dashed #fecaca;
+    background: #fffafa;
 }
 
 .bill-card.occupied {
-    border-left: 4px solid var(--accent-primary);
+    border: 2px solid #7c3aed;
+    background: white;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
+}
+
+.bill-card.occupied .bill-room {
+    color: #7c3aed;
+}
+
+/* ============ Sidebar Footer Refinement ============ */
+.sidebar-credit {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    opacity: 0.6;
+    margin-top: 8px;
+    text-align: center;
+    width: 100%;
+}
+
+/* ============ Print Section ============ */
+@media print {
+    body>*:not(#print-container) {
+        display: none !important;
+    }
+
+    #print-container {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+
+    .page-break {
+        page-break-after: always;
+        break-after: page;
+    }
+
+    @page {
+        size: A4;
+        margin: 0;
+    }
 }
 
 .signature-section {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
+    /* Align signature block to the right */
     margin-top: auto;
     padding-bottom: 5mm;
     color: #000 !important;
@@ -1090,13 +1162,16 @@ select.form-control {
 .signature-box {
     text-align: center;
     color: #000 !important;
+    min-width: 200px;
+    /* Ensure enough space for the line */
 }
 
 .signature-line {
     border-top: 1px solid #000;
     padding-top: 4px;
-    width: 150px;
-    margin-top: 20px;
+    width: 180px;
+    margin: 20px auto 0 auto;
+    /* Center line within the box */
     color: #000 !important;
 }
 

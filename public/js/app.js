@@ -745,7 +745,14 @@ function renderBills(month, year) {
 
     container.innerHTML = Object.entries(groupedBills).map(([floorName, bills]) => `
         <div class="bill-floor-section">
-            <h2 class="floor-title"><i class="fas fa-layer-group"></i> ${floorName}</h2>
+            <h2 class="floor-title">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span><i class="fas fa-layer-group"></i> ${floorName}</span>
+                    <button class="btn btn-sm btn-secondary" onclick="printFloorBills('${floorName}')">
+                        <i class="fas fa-print"></i> พิมพ์ทั้งชั้น
+                    </button>
+                </div>
+            </h2>
             <div class="bills-grid">
                 ${bills.map(bill => `
                     <div class="bill-card ${bill.is_occupied ? 'occupied' : 'vacant'}" data-room-id="${bill.room_id}">
@@ -760,7 +767,7 @@ function renderBills(month, year) {
                                 <div class="bill-tenant">${bill.tenant_name}</div>
                                 <div class="bill-invoice">#${bill.invoice_no || ''}</div>
                             </div>
-                            <div style="text-align:right;font-size:0.9rem;color:var(--text-muted);">
+                            <div style="text-align:right;font-size:0.9rem;color:#4b5563;">
                                 ${monthNames[bill.bill_month - 1]} ${bill.bill_year + 543}
                             </div>
                         </div>
@@ -813,10 +820,8 @@ function renderBills(month, year) {
     `).join('');
 }
 
-function printBill(roomId) {
-    const bill = billsData.find(b => b.room_id === roomId);
-    if (!bill) return;
-
+// Helper to get Bill HTML for printing
+function generateBillPrintHTML(bill) {
     const monthNames = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
         'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
 
@@ -828,7 +833,7 @@ function printBill(roomId) {
 
     const billingPeriod = `${monthNames[bill.bill_month - 1]} ${bill.bill_year + 543}`;
 
-    const getBillHTML = (type, badgeClass) => `
+    const getSharedBlock = (type, badgeClass) => `
         <div class="bill-section">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px;">
                 <div style="flex: 1;"></div>
@@ -910,31 +915,58 @@ function printBill(roomId) {
                 </tfoot>
             </table>
             
-            <div class="signature-section text-sm">
-                <div>
+            <div class="signature-section text-sm" style="margin-top: 15px;">
+                <div style="flex: 2; color: #4b5563;">
                     <p>กรุณาชำระภายในวันที่ <span class="font-semibold" style="color: #dc2626;">5</span> ของทุกเดือน</p>
-                    <p class="text-xs text-gray-500 mt-1">หากเกินกำหนดจะมีค่าปรับตามเงื่อนไขที่ตกลงกัน</p>
+                    <p class="text-xs mt-1">หากเกินกำหนดจะมีค่าปรับตามเงื่อนไขที่ตกลงกัน</p>
                 </div>
-                <div class="signature-box">
-                    <p style="margin-bottom: 20px;">ลงชื่อผู้รับเงิน</p>
-                    <p class="signature-line">(.............................)</p>
+                <div class="signature-box" style="flex: 1;">
+                    <p style="margin-bottom: 25px;">ลงชื่อผู้รับเงิน</p>
+                    <p class="signature-line">(.......................................)</p>
                 </div>
             </div>
         </div>
     `;
 
-    document.getElementById('print-container').innerHTML = `
+    return `
         <div class="bill-container">
-            ${getBillHTML('สำเนา', 'copy-badge')}
+            ${getSharedBlock('สำเนา', 'copy-badge')}
             <div class="dashed-line"></div>
-            ${getBillHTML('ต้นฉบับ', 'original-badge')}
+            ${getSharedBlock('ต้นฉบับ', 'original-badge')}
         </div>
     `;
+}
+
+function printBill(roomId) {
+    const bill = billsData.find(b => b.room_id === roomId);
+    if (!bill) return;
+
+    document.getElementById('print-container').innerHTML = generateBillPrintHTML(bill);
 
     setTimeout(() => {
         window.print();
     }, 500);
 }
+
+async function printFloorBills(floorName) {
+    const floorBills = billsData.filter(b => b.floor_name === floorName);
+    if (floorBills.length === 0) return;
+
+    let html = '';
+    floorBills.forEach((bill, index) => {
+        html += generateBillPrintHTML(bill);
+        if (index < floorBills.length - 1) {
+            html += '<div class="page-break"></div>';
+        }
+    });
+
+    document.getElementById('print-container').innerHTML = html;
+
+    setTimeout(() => {
+        window.print();
+    }, 800);
+}
+
 
 function editBill(roomId) {
     const bill = billsData.find(b => b.room_id === roomId);
