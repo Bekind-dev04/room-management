@@ -6,7 +6,7 @@ const db = require('../config/database');
 router.get('/', async (req, res) => {
     try {
         const [rows] = await db.query(`
-            SELECT r.*, f.name as floor_name, t.name as tenant_name, t.phone as tenant_phone
+            SELECT r.*, f.name as floor_name, t.id as tenant_id, t.name as tenant_name, t.phone as tenant_phone
             FROM rooms r
             LEFT JOIN floors f ON r.floor_id = f.id
             LEFT JOIN tenants t ON t.room_id = r.id AND t.is_active = 1
@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
     try {
         const [rows] = await db.query(`
-            SELECT r.*, f.name as floor_name, t.name as tenant_name, t.phone as tenant_phone
+            SELECT r.*, f.name as floor_name, t.id as tenant_id, t.name as tenant_name, t.phone as tenant_phone
             FROM rooms r
             LEFT JOIN floors f ON r.floor_id = f.id
             LEFT JOIN tenants t ON t.room_id = r.id AND t.is_active = 1

@@ -395,6 +395,39 @@ async function showRoomDetail(roomId) {
     const room = roomsData.find(r => r.id === roomId);
     if (!room) return;
 
+    let tenantSection = '';
+    let actionButtons = '';
+
+    if (room.is_occupied && room.tenant_id) {
+        tenantSection = `
+            <div class="card" style="margin-top:20px; border-color:var(--success);">
+                <div class="card-header" style="margin-bottom:0; border-bottom:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                        <div>
+                            <div style="font-size:0.9rem; color:var(--text-muted);">ผู้เช่าปัจจุบัน</div>
+                            <div style="font-size:1.1rem; font-weight:600;">${room.tenant_name}</div>
+                            <div style="font-size:0.9rem;"><i class="fas fa-phone"></i> ${room.tenant_phone || '-'}</div>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="showEditTenantModal(${room.tenant_id})">
+                                <i class="fas fa-user-edit"></i> ข้อมูล
+                            </button>
+                            <button type="button" class="btn btn-sm btn-warning" onclick="moveOutTenant(${room.tenant_id})" style="color:white;">
+                                <i class="fas fa-sign-out-alt"></i> ย้ายออก
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    } else {
+        actionButtons = `
+            <button type="button" class="btn btn-success" onclick="showAddTenantModal(${room.id})" style="margin-right:auto;">
+                <i class="fas fa-user-plus"></i> เพิ่มผู้เช่า
+            </button>
+        `;
+    }
+
     openModal(`ห้อง ${room.room_number}`, `
         <form id="edit-room-form" onsubmit="submitEditRoom(event, ${roomId})">
             <div class="form-group">
@@ -405,35 +438,46 @@ async function showRoomDetail(roomId) {
                 <label>ค่าเช่าห้อง (บาท/เดือน)</label>
                 <input type="number" class="form-control" name="room_price" value="${room.room_price}" min="0" step="100">
             </div>
-            <div class="form-group">
-                <label>การคำนวณค่าน้ำ</label>
-                <select class="form-control" name="water_calculation_type" onchange="toggleWaterFixed(this.value)">
-                    <option value="unit" ${room.water_calculation_type === 'unit' ? 'selected' : ''}>ตามหน่วย (Unit)</option>
-                    <option value="fixed" ${room.water_calculation_type === 'fixed' ? 'selected' : ''}>เหมาจ่าย (Fixed)</option>
-                </select>
+            
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+                <div>
+                    <div class="form-group">
+                        <label>การคำนวณค่าน้ำ</label>
+                        <select class="form-control" name="water_calculation_type" onchange="toggleWaterFixed(this.value)">
+                            <option value="unit" ${room.water_calculation_type === 'unit' ? 'selected' : ''}>ตามหน่วย</option>
+                            <option value="fixed" ${room.water_calculation_type === 'fixed' ? 'selected' : ''}>เหมาจ่าย</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="water-fixed-group" style="display:${room.water_calculation_type === 'fixed' ? 'block' : 'none'};">
+                        <label>ค่าน้ำเหมาจ่าย</label>
+                        <input type="number" class="form-control" name="water_fixed_amount" value="${room.water_fixed_amount}" min="0">
+                    </div>
+                </div>
+                <div>
+                    <div class="form-group">
+                        <label>การคำนวณค่าไฟ</label>
+                        <select class="form-control" name="electric_calculation_type" onchange="toggleElectricFixed(this.value)">
+                            <option value="unit" ${room.electric_calculation_type === 'unit' ? 'selected' : ''}>ตามหน่วย</option>
+                            <option value="fixed" ${room.electric_calculation_type === 'fixed' ? 'selected' : ''}>เหมาจ่าย</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="electric-fixed-group" style="display:${room.electric_calculation_type === 'fixed' ? 'block' : 'none'};">
+                        <label>ค่าไฟเหมาจ่าย</label>
+                        <input type="number" class="form-control" name="electric_fixed_amount" value="${room.electric_fixed_amount}" min="0">
+                    </div>
+                </div>
             </div>
-            <div class="form-group" id="water-fixed-group" style="display:${room.water_calculation_type === 'fixed' ? 'block' : 'none'};">
-                <label>ค่าน้ำเหมาจ่าย (บาท)</label>
-                <input type="number" class="form-control" name="water_fixed_amount" value="${room.water_fixed_amount}" min="0">
-            </div>
-            <div class="form-group">
-                <label>การคำนวณค่าไฟ</label>
-                <select class="form-control" name="electric_calculation_type" onchange="toggleElectricFixed(this.value)">
-                    <option value="unit" ${room.electric_calculation_type === 'unit' ? 'selected' : ''}>ตามหน่วย (Unit)</option>
-                    <option value="fixed" ${room.electric_calculation_type === 'fixed' ? 'selected' : ''}>เหมาจ่าย (Fixed)</option>
-                </select>
-            </div>
-            <div class="form-group" id="electric-fixed-group" style="display:${room.electric_calculation_type === 'fixed' ? 'block' : 'none'};">
-                <label>ค่าไฟเหมาจ่าย (บาท)</label>
-                <input type="number" class="form-control" name="electric_fixed_amount" value="${room.electric_fixed_amount}" min="0">
-            </div>
+
             <input type="hidden" name="floor_id" value="${room.floor_id}">
             <input type="hidden" name="is_occupied" value="${room.is_occupied ? 1 : 0}">
-            <div class="modal-footer">
-                <button type="button" class="btn btn-danger" onclick="deleteRoom(${roomId})" style="margin-right:auto;">
+            
+            ${tenantSection}
+
+            <div class="modal-footer" style="margin-top:20px;">
+                ${actionButtons}
+                <button type="button" class="btn btn-danger" onclick="deleteRoom(${roomId})" ${actionButtons ? '' : 'style="margin-right:auto;"'}>
                     <i class="fas fa-trash"></i> ลบห้อง
                 </button>
-                <button type="button" class="btn btn-secondary" onclick="closeModal()">ยกเลิก</button>
                 <button type="submit" class="btn btn-primary">บันทึก</button>
             </div>
         </form>
@@ -804,6 +848,11 @@ function renderTenants() {
                             <button class="btn btn-icon btn-secondary" onclick="showEditTenantModal(${tenant.id})">
                                 <i class="fas fa-edit"></i>
                             </button>
+                            ${tenant.is_active ? `
+                                <button class="btn btn-icon btn-warning" onclick="moveOutTenant(${tenant.id})" title="ย้ายออก">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                </button>
+                            ` : ''}
                             <button class="btn btn-icon btn-danger" onclick="deleteTenant(${tenant.id})">
                                 <i class="fas fa-trash"></i>
                             </button>
@@ -815,10 +864,32 @@ function renderTenants() {
     `;
 }
 
-function showAddTenantModal() {
+async function moveOutTenant(tenantId) {
+    if (!confirm('ยืนยันแจ้งย้ายออกผู้เช่านี้?')) return;
+
+    // Get current tenant info first
+    try {
+        const tenant = tenantsData.find(t => t.id === tenantId) || (await apiGet(`/tenants/${tenantId}`));
+
+        await apiPut(`/tenants/${tenantId}`, {
+            ...tenant,
+            is_active: false,
+            move_out_date: new Date().toISOString().split('T')[0]
+        });
+
+        closeModal();
+        showToast('แจ้งย้ายออกเรียบร้อย', 'success');
+        await loadTenants();
+        await loadFloorsAndRooms();
+    } catch (error) {
+        showToast('เกิดข้อผิดพลาด', 'error');
+    }
+}
+
+function showAddTenantModal(preselectedRoomId = null) {
     const roomOptions = roomsData
-        .filter(r => !r.is_occupied)
-        .map(r => `<option value="${r.id}">${r.room_number} (${r.floor_name})</option>`)
+        .filter(r => !r.is_occupied || r.id === preselectedRoomId)
+        .map(r => `<option value="${r.id}" ${r.id === preselectedRoomId ? 'selected' : ''}>${r.room_number} (${r.floor_name})</option>`)
         .join('');
 
     openModal('เพิ่มผู้เช่าใหม่', `
