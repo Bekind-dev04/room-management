@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจัดการห้องพัก</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-building"></i>
+                    <span>Room Manager</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-page="rooms">
+                    <i class="fas fa-th-large"></i>
+                    <span>ผังห้องเช่า</span>
+                </a>
+                <a href="#" class="nav-item" data-page="meters">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>จดมิเตอร์</span>
+                </a>
+                <a href="#" class="nav-item" data-page="bills">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span>บิลค่าเช่า</span>
+                </a>
+                <a href="#" class="nav-item" data-page="tenants">
+                    <i class="fas fa-users"></i>
+                    <span>ข้อมูลผู้เช่า</span>
+                </a>
+                <a href="#" class="nav-item" data-page="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>ตั้งค่า</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="current-date">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span id="current-date"></span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Page: Rooms Layout -->
+            <section id="page-rooms" class="page active">
+                <div class="page-header">
+                    <h1><i class="fas fa-th-large"></i> ผังห้องเช่า</h1>
+                    <div class="header-actions">
+                        <button class="btn btn-primary" onclick="showAddFloorModal()">
+                            <i class="fas fa-plus"></i> เพิ่มชั้น
+                        </button>
+                    </div>
+                </div>
+                <div class="page-content">
+                    <div id="floors-container" class="floors-grid"></div>
+                </div>
+            </section>
+
+            <!-- Page: Meters -->
+            <section id="page-meters" class="page">
+                <div class="page-header">
+                    <h1><i class="fas fa-tachometer-alt"></i> จดมิเตอร์น้ำ/ไฟ</h1>
+                    <div class="header-actions">
+                        <div class="month-selector">
+                            <select id="meter-month" class="form-control">
+                                <option value="1">มกราคม</option>
+                                <option value="2">กุมภาพันธ์</option>
+                                <option value="3">มีนาคม</option>
+                                <option value="4">เมษายน</option>
+                                <option value="5">พฤษภาคม</option>
+                                <option value="6">มิถุนายน</option>
+                                <option value="7">กรกฎาคม</option>
+                                <option value="8">สิงหาคม</option>
+                                <option value="9">กันยายน</option>
+                                <option value="10">ตุลาคม</option>
+                                <option value="11">พฤศจิกายน</option>
+                                <option value="12">ธันวาคม</option>
+                            </select>
+                            <select id="meter-year" class="form-control"></select>
+                            <button class="btn btn-primary" onclick="loadMeterData()">
+                                <i class="fas fa-search"></i> โหลดข้อมูล
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="page-content">
+                    <div id="meters-container"></div>
+                    <div class="action-bar" id="meter-action-bar" style="display:none;">
+                        <button class="btn btn-success btn-lg" onclick="saveAllMeters()">
+                            <i class="fas fa-save"></i> บันทึกทั้งหมด
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page: Bills -->
+            <section id="page-bills" class="page">
+                <div class="page-header">
+                    <h1><i class="fas fa-file-invoice-dollar"></i> บิลค่าเช่า</h1>
+                    <div class="header-actions">
+                        <div class="month-selector">
+                            <select id="bill-month" class="form-control">
+                                <option value="1">มกราคม</option>
+                                <option value="2">กุมภาพันธ์</option>
+                                <option value="3">มีนาคม</option>
+                                <option value="4">เมษายน</option>
+                                <option value="5">พฤษภาคม</option>
+                                <option value="6">มิถุนายน</option>
+                                <option value="7">กรกฎาคม</option>
+                                <option value="8">สิงหาคม</option>
+                                <option value="9">กันยายน</option>
+                                <option value="10">ตุลาคม</option>
+                                <option value="11">พฤศจิกายน</option>
+                                <option value="12">ธันวาคม</option>
+                            </select>
+                            <select id="bill-year" class="form-control"></select>
+                            <button class="btn btn-primary" onclick="generateBills()">
+                                <i class="fas fa-file-alt"></i> สร้างบิล
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="page-content">
+                    <div id="bills-container" class="bills-grid"></div>
+                </div>
+            </section>
+
+            <!-- Page: Tenants -->
+            <section id="page-tenants" class="page">
+                <div class="page-header">
+                    <h1><i class="fas fa-users"></i> ข้อมูลผู้เช่า</h1>
+                    <div class="header-actions">
+                        <button class="btn btn-primary" onclick="showAddTenantModal()">
+                            <i class="fas fa-user-plus"></i> เพิ่มผู้เช่า
+                        </button>
+                    </div>
+                </div>
+                <div class="page-content">
+                    <div id="tenants-container" class="tenants-table-container"></div>
+                </div>
+            </section>
+
+            <!-- Page: Settings -->
+            <section id="page-settings" class="page">
+                <div class="page-header">
+                    <h1><i class="fas fa-cog"></i> ตั้งค่าระบบ</h1>
+                </div>
+                <div class="page-content">
+                    <div class="settings-card">
+                        <h3><i class="fas fa-bolt"></i> ค่าไฟฟ้า</h3>
+                        <div class="form-group">
+                            <label>ราคาต่อหน่วย (บาท)</label>
+                            <input type="number" id="setting-electric-rate" class="form-control" step="0.5">
+                        </div>
+                    </div>
+                    <div class="settings-card">
+                        <h3><i class="fas fa-tint"></i> ค่าน้ำประปา</h3>
+                        <div class="form-group">
+                            <label>ราคาต่อหน่วย (บาท)</label>
+                            <input type="number" id="setting-water-rate" class="form-control" step="0.5">
+                        </div>
+                    </div>
+                    <button class="btn btn-success btn-lg" onclick="saveSettings()">
+                        <i class="fas fa-save"></i> บันทึกการตั้งค่า
+                    </button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal Container -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal" id="modal">
+            <div class="modal-header">
+                <h2 id="modal-title">Modal Title</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- Bill Print Template (Hidden) -->
+    <div id="print-container" class="print-only"></div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <script src="/js/app.js"></script>
+</body>
+</html>
