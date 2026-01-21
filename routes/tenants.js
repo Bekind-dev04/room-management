@@ -15,8 +15,13 @@ const storage = multer.diskStorage({
         cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
+        // Get room_number from form data or use 'unknown'
+        const roomNumber = req.body.room_number || 'unknown';
+        const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+        const fileType = file.fieldname === 'id_card' ? 'idcard' : 'contract';
+        const ext = path.extname(file.originalname);
+        // Format: room_YYYYMMDD_type.ext (e.g., 102_20260121_idcard.jpg)
+        cb(null, `${roomNumber}_${dateStr}_${fileType}${ext}`);
     }
 });
 
@@ -100,6 +105,14 @@ router.put('/:id', async (req, res) => {
     try {
         const { room_id, name, phone, id_number, address, move_in_date, move_out_date, is_active } = req.body;
 
+        // Helper to format date to YYYY-MM-DD
+        const formatDate = (dateValue) => {
+            if (!dateValue) return null;
+            const d = new Date(dateValue);
+            if (isNaN(d.getTime())) return null;
+            return d.toISOString().split('T')[0];
+        };
+
         // Get old room_id
         const [oldTenant] = await db.query('SELECT room_id FROM tenants WHERE id = ?', [req.params.id]);
         const oldRoomId = oldTenant[0]?.room_id;
@@ -109,7 +122,7 @@ router.put('/:id', async (req, res) => {
             room_id = ?, name = ?, phone = ?, id_number = ?, address = ?, 
             move_in_date = ?, move_out_date = ?, is_active = ?
             WHERE id = ?`,
-            [room_id || null, name, phone, id_number, address, move_in_date, move_out_date, is_active, req.params.id]
+            [room_id || null, name, phone, id_number, address, formatDate(move_in_date), formatDate(move_out_date), is_active, req.params.id]
         );
 
         // Update room occupied status

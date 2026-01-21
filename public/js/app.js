@@ -921,6 +921,26 @@ function showAddTenantModal(preselectedRoomId = null) {
                 <label>วันที่เข้าพัก</label>
                 <input type="date" class="form-control" name="move_in_date" value="${new Date().toISOString().split('T')[0]}">
             </div>
+            <div class="form-group">
+                <label>รูปบัตรประชาชน</label>
+                <div class="upload-btn-row">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('add-id-card-input').click()">
+                        <i class="fas fa-cloud-upload-alt"></i> คลิกเพื่ออัพโหลดรูปบัตรประชาชน
+                    </button>
+                    <span id="add-id-card-label" class="file-name-display"></span>
+                    <input type="file" id="add-id-card-input" name="id_card" accept="image/*,.pdf" style="display:none;" onchange="updateFileLabel(this, 'add-id-card-label')">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>สัญญาเช่า</label>
+                <div class="upload-btn-row">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('add-contract-input').click()">
+                        <i class="fas fa-cloud-upload-alt"></i> คลิกเพื่ออัพโหลดสัญญาเช่า
+                    </button>
+                    <span id="add-contract-label" class="file-name-display"></span>
+                    <input type="file" id="add-contract-input" name="contract" accept="image/*,.pdf" style="display:none;" onchange="updateFileLabel(this, 'add-contract-label')">
+                </div>
+            </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal()">ยกเลิก</button>
                 <button type="submit" class="btn btn-primary">บันทึก</button>
@@ -929,12 +949,26 @@ function showAddTenantModal(preselectedRoomId = null) {
     `);
 }
 
+function updateFileLabel(input, labelId) {
+    const label = document.getElementById(labelId);
+    if (input.files && input.files[0]) {
+        label.textContent = '✓ ' + input.files[0].name;
+    }
+}
+
 async function submitAddTenant(e) {
     e.preventDefault();
     const form = e.target;
+
+    // Get room_number from selected option text
+    const roomSelect = form.room_id;
+    const selectedRoomId = roomSelect.value;
+    const selectedRoom = roomsData.find(r => r.id === parseInt(selectedRoomId));
+    const roomNumber = selectedRoom ? selectedRoom.room_number : 'unknown';
+
     const data = {
         name: form.name.value,
-        room_id: form.room_id.value || null,
+        room_id: selectedRoomId || null,
         phone: form.phone.value,
         id_number: form.id_number.value,
         address: form.address.value,
@@ -942,7 +976,26 @@ async function submitAddTenant(e) {
     };
 
     try {
-        await apiPost('/tenants', data);
+        const result = await apiPost('/tenants', data);
+        const tenantId = result.id;
+
+        // Upload files if selected
+        const idCardFile = document.getElementById('add-id-card-input').files[0];
+        const contractFile = document.getElementById('add-contract-input').files[0];
+
+        if (idCardFile || contractFile) {
+            const formData = new FormData();
+            // IMPORTANT: room_number must be first so multer can access it during filename generation
+            formData.append('room_number', roomNumber);
+            if (idCardFile) formData.append('id_card', idCardFile);
+            if (contractFile) formData.append('contract', contractFile);
+
+            await fetch(`${API_BASE}/tenants/${tenantId}/upload`, {
+                method: 'POST',
+                body: formData
+            });
+        }
+
         closeModal();
         showToast('เพิ่มผู้เช่าเรียบร้อย', 'success');
         await loadTenants();
@@ -1008,10 +1061,11 @@ async function showEditTenantModal(tenantId) {
                 ${tenant.id_card_image ?
             `<div class="file-preview"><div class="file-preview-item"><img src="${tenant.id_card_image}" alt="ID Card"></div></div>` :
             ''}
-                <div class="file-upload" onclick="document.getElementById('id-card-input').click()">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    <p>คลิกเพื่ออัพโหลดรูปบัตรประชาชน</p>
-                    <input type="file" id="id-card-input" accept="image/*,.pdf" onchange="uploadTenantFile(${tenantId}, 'id_card', this.files[0])">
+                <div class="upload-btn-row">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('id-card-input').click()">
+                        <i class="fas fa-cloud-upload-alt"></i> คลิกเพื่ออัพโหลดรูปบัตรประชาชน
+                    </button>
+                    <input type="file" id="id-card-input" accept="image/*,.pdf" style="display:none;" onchange="uploadTenantFile(${tenantId}, 'id_card', this.files[0])">
                 </div>
             </div>
             <div class="form-group">
@@ -1019,10 +1073,11 @@ async function showEditTenantModal(tenantId) {
                 ${tenant.contract_image ?
             `<div class="file-preview"><div class="file-preview-item"><img src="${tenant.contract_image}" alt="Contract"></div></div>` :
             ''}
-                <div class="file-upload" onclick="document.getElementById('contract-input').click()">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    <p>คลิกเพื่ออัพโหลดสัญญาเช่า</p>
-                    <input type="file" id="contract-input" accept="image/*,.pdf" onchange="uploadTenantFile(${tenantId}, 'contract', this.files[0])">
+                <div class="upload-btn-row">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('contract-input').click()">
+                        <i class="fas fa-cloud-upload-alt"></i> คลิกเพื่ออัพโหลดสัญญาเช่า
+                    </button>
+                    <input type="file" id="contract-input" accept="image/*,.pdf" style="display:none;" onchange="uploadTenantFile(${tenantId}, 'contract', this.files[0])">
                 </div>
             </div>
             
@@ -1062,7 +1117,13 @@ async function submitEditTenant(e, tenantId) {
 async function uploadTenantFile(tenantId, type, file) {
     if (!file) return;
 
+    // Find tenant to get room_number
+    const tenant = tenantsData.find(t => t.id === tenantId);
+    const roomNumber = tenant?.room_number || 'unknown';
+
     const formData = new FormData();
+    // IMPORTANT: room_number must be first so multer can access it during filename generation
+    formData.append('room_number', roomNumber);
     formData.append(type, file);
 
     try {
