@@ -13,14 +13,15 @@ router.get('/generate/:month/:year', async (req, res) => {
         settings.forEach(s => settingsMap[s.setting_key] = s.setting_value);
         const waterRate = parseFloat(settingsMap.water_rate) || 18;
         const electricRate = parseFloat(settingsMap.electric_rate) || 8;
+        const trashFee = parseFloat(settingsMap.trash_fee) || 30;
 
-        // Get rooms with meter readings
+        // Get ALL rooms with meter readings
         const [rooms] = await db.query(`
             SELECT 
-                r.id as room_id, r.room_number, r.room_price,
+                r.id as room_id, r.room_number, r.room_price, r.is_occupied,
                 r.water_calculation_type, r.water_fixed_amount,
                 r.electric_calculation_type, r.electric_fixed_amount,
-                f.name as floor_name,
+                f.name as floor_name, f.sort_order as floor_order,
                 m.water_previous, m.water_current, m.water_units,
                 m.electric_previous, m.electric_current, m.electric_units,
                 t.id as tenant_id, t.name as tenant_name, t.phone as tenant_phone
@@ -29,53 +30,72 @@ router.get('/generate/:month/:year', async (req, res) => {
             LEFT JOIN meter_readings m ON r.id = m.room_id 
                 AND m.reading_month = ? AND m.reading_year = ?
             LEFT JOIN tenants t ON t.room_id = r.id AND t.is_active = 1
-            WHERE m.id IS NOT NULL OR r.is_occupied = 1
             ORDER BY f.sort_order ASC, r.room_number ASC
         `, [month, year]);
+
+        // Get last numeric invoice number globally to continue sequence
+        const [lastInvoice] = await db.query(
+            "SELECT invoice_no FROM bills WHERE invoice_no REGEXP '^[0-9]+$' ORDER BY CAST(invoice_no AS UNSIGNED) DESC LIMIT 1"
+        );
+
+        let nextNumber = 1;
+        if (lastInvoice.length > 0) {
+            nextNumber = parseInt(lastInvoice[0].invoice_no) + 1;
+        }
 
         const bills = rooms.map(room => {
             // Calculate water
             let waterAmount = 0;
-            let waterUnits = room.water_units || 0;
+            let waterUnits = parseFloat(room.water_units) || 0;
             if (room.water_calculation_type === 'fixed') {
-                waterAmount = room.water_fixed_amount;
+                waterAmount = parseFloat(room.water_fixed_amount) || 0;
             } else {
                 waterAmount = waterUnits * waterRate;
             }
 
             // Calculate electric
             let electricAmount = 0;
-            let electricUnits = room.electric_units || 0;
+            let electricUnits = parseFloat(room.electric_units) || 0;
             if (room.electric_calculation_type === 'fixed') {
-                electricAmount = room.electric_fixed_amount;
+                electricAmount = parseFloat(room.electric_fixed_amount) || 0;
             } else {
                 electricAmount = electricUnits * electricRate;
             }
 
-            const total = (room.room_price || 0) + waterAmount + electricAmount;
+            const roomPrice = parseFloat(room.room_price) || 0;
+            const currentTrashFee = room.is_occupied ? trashFee : 0;
+            const total = roomPrice + waterAmount + electricAmount + currentTrashFee;
+            const invoiceNo = String(nextNumber++).padStart(6, '0');
 
             return {
                 room_id: room.room_id,
                 room_number: room.room_number,
+                is_occupied: room.is_occupied,
                 floor_name: room.floor_name,
-                tenant_name: room.tenant_name || '-',
+                floor_order: room.floor_order,
+                tenant_id: room.tenant_id,
+                tenant_name: room.tenant_name || (room.is_occupied ? '-' : 'ห้องว่าง'),
                 tenant_phone: room.tenant_phone || '-',
-                room_price: room.room_price,
-                water_previous: room.water_previous,
-                water_current: room.water_current,
+                room_price: roomPrice,
+                water_previous: room.water_previous || 0,
+                water_current: room.water_current || 0,
                 water_units: waterUnits,
-                water_rate: room.water_calculation_type === 'unit' ? waterRate : null,
+                water_rate: room.water_calculation_type === 'unit' ? waterRate : 0,
                 water_amount: waterAmount,
                 water_type: room.water_calculation_type,
-                electric_previous: room.electric_previous,
-                electric_current: room.electric_current,
+                electric_previous: room.electric_previous || 0,
+                electric_current: room.electric_current || 0,
                 electric_units: electricUnits,
-                electric_rate: room.electric_calculation_type === 'unit' ? electricRate : null,
+                electric_rate: room.electric_calculation_type === 'unit' ? electricRate : 0,
                 electric_amount: electricAmount,
                 electric_type: room.electric_calculation_type,
+                trash_fee: currentTrashFee,
+                other_amount: 0,
+                other_description: '',
                 total_amount: total,
                 bill_month: parseInt(month),
-                bill_year: parseInt(year)
+                bill_year: parseInt(year),
+                invoice_no: invoiceNo
             };
         });
 
@@ -126,21 +146,21 @@ router.post('/', async (req, res) => {
                 `UPDATE bills SET 
                 tenant_id = ?, room_price = ?, water_units = ?, water_rate = ?, water_amount = ?,
                 electric_units = ?, electric_rate = ?, electric_amount = ?,
-                other_amount = ?, other_description = ?, total_amount = ?
+                trash_fee = ?, other_amount = ?, other_description = ?, total_amount = ?
                 WHERE id = ?`,
                 [tenant_id, room_price, water_units, water_rate, water_amount,
                     electric_units, electric_rate, electric_amount,
-                    other_amount, other_description, total_amount, existing[0].id]
+                    trash_fee || 0, other_amount, other_description, total_amount, existing[0].id]
             );
             res.json({ id: existing[0].id, updated: true });
         } else {
             const [result] = await db.query(
                 `INSERT INTO bills 
-                (room_id, tenant_id, bill_month, bill_year, room_price, water_units, water_rate, water_amount,
-                 electric_units, electric_rate, electric_amount, other_amount, other_description, total_amount)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [room_id, tenant_id, bill_month, bill_year, room_price, water_units, water_rate, water_amount,
-                    electric_units, electric_rate, electric_amount, other_amount, other_description, total_amount]
+                (invoice_no, room_id, tenant_id, bill_month, bill_year, room_price, water_units, water_rate, water_amount,
+                 electric_units, electric_rate, electric_amount, trash_fee, other_amount, other_description, total_amount)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [invoice_no, room_id, tenant_id, bill_month, bill_year, room_price, water_units, water_rate, water_amount,
+                    electric_units, electric_rate, electric_amount, trash_fee || 0, other_amount, other_description, total_amount]
             );
             res.status(201).json({ id: result.insertId, created: true });
         }

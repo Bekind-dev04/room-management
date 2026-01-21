@@ -41,10 +41,16 @@ router.get('/rooms/:month/:year', async (req, res) => {
             JOIN floors f ON r.floor_id = f.id
             LEFT JOIN meter_readings curr ON r.id = curr.room_id 
                 AND curr.reading_month = ? AND curr.reading_year = ?
-            LEFT JOIN meter_readings prev ON r.id = prev.room_id 
-                AND prev.reading_month = ? AND prev.reading_year = ?
+            LEFT JOIN meter_readings prev ON prev.id = (
+                SELECT id FROM meter_readings pm
+                WHERE pm.room_id = r.id 
+                AND (pm.reading_year < ? OR (pm.reading_year = ? AND pm.reading_month < ?))
+                AND (pm.water_current > 0 OR pm.electric_current > 0)
+                ORDER BY pm.reading_year DESC, pm.reading_month DESC
+                LIMIT 1
+            )
             ORDER BY f.sort_order ASC, r.room_number ASC
-        `, [month, year, prevMonth, prevYear]);
+        `, [month, year, year, year, month]);
         res.json(rows);
     } catch (error) {
         console.error(error);

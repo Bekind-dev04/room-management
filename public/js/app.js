@@ -133,6 +133,7 @@ async function loadSettings() {
         settings = await apiGet('/settings');
         document.getElementById('setting-water-rate').value = settings.water_rate || 18;
         document.getElementById('setting-electric-rate').value = settings.electric_rate || 8;
+        document.getElementById('setting-trash-fee').value = settings.trash_fee || 30;
     } catch (error) {
         console.error('Error loading settings:', error);
     }
@@ -142,13 +143,15 @@ async function saveSettings() {
     try {
         const water_rate = document.getElementById('setting-water-rate').value;
         const electric_rate = document.getElementById('setting-electric-rate').value;
+        const trash_fee = document.getElementById('setting-trash-fee').value;
 
         await apiPost('/settings/bulk', {
-            settings: { water_rate, electric_rate }
+            settings: { water_rate, electric_rate, trash_fee }
         });
 
         settings.water_rate = water_rate;
         settings.electric_rate = electric_rate;
+        settings.trash_fee = trash_fee;
 
         showToast('บันทึกการตั้งค่าเรียบร้อย', 'success');
     } catch (error) {
@@ -576,50 +579,101 @@ function renderMeterData(month, year) {
             <table class="meters-table">
                 <thead>
                     <tr>
-                        <th>ห้อง</th>
-                        <th colspan="2" class="meter-label water"><i class="fas fa-tint"></i> มิเตอร์น้ำ</th>
-                        <th colspan="2" class="meter-label electric"><i class="fas fa-bolt"></i> มิเตอร์ไฟ</th>
+                        <th rowspan="2" style="width: 100px;">ห้อง</th>
+                        <th colspan="3" class="meter-label water border-right-separator"><i class="fas fa-tint"></i> มิเตอร์น้ำ</th>
+                        <th colspan="3" class="meter-label electric"><i class="fas fa-bolt"></i> มิเตอร์ไฟ</th>
                     </tr>
                     <tr>
-                        <th></th>
                         <th>เลขก่อนหน้า</th>
                         <th>เลขปัจจุบัน</th>
+                        <th class="border-right-separator">หน่วยที่ใช้</th>
                         <th>เลขก่อนหน้า</th>
                         <th>เลขปัจจุบัน</th>
+                        <th>หน่วยที่ใช้</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${floor.rooms.map(room => `
+                    ${floor.rooms.map(room => {
+        const waterPrev = parseFloat(room.water_previous) || parseFloat(room.prev_water) || 0;
+        const waterCurr = parseFloat(room.water_current) || 0;
+        // Only show usage if current reading is entered (> 0)
+        const waterUsageVal = waterCurr - waterPrev;
+        const waterUsage = (waterCurr > 0) ? waterUsageVal.toFixed(2) : '-';
+        const waterClass = (waterCurr > 0) ? (waterUsageVal < 0 ? 'negative' : 'positive') : '';
+
+        const electricPrev = parseFloat(room.electric_previous) || parseFloat(room.prev_electric) || 0;
+        const electricCurr = parseFloat(room.electric_current) || 0;
+        // Only show usage if current reading is entered (> 0)
+        const electricUsageVal = electricCurr - electricPrev;
+        const electricUsage = (electricCurr > 0) ? electricUsageVal.toFixed(2) : '-';
+        const electricClass = (electricCurr > 0) ? (electricUsageVal < 0 ? 'negative' : 'positive') : '';
+
+        return `
                         <tr data-room-id="${room.room_id}">
                             <td><strong>${room.room_number}</strong></td>
+                            <!-- Water -->
                             <td>
-                                <input type="number" class="water-prev" 
-                                       value="${room.water_previous || room.prev_water || 0}" 
-                                       step="0.01" min="0">
+                                <input type="number" class="water-prev form-control" 
+                                       value="${waterPrev}" 
+                                       step="0.01" min="0" readonly>
                             </td>
                             <td>
-                                <input type="number" class="water-curr" 
+                                <input type="number" class="water-curr form-control" 
                                        value="${room.water_current || ''}" 
                                        step="0.01" min="0" 
-                                       placeholder="${room.prev_water || 0}">
+                                       oninput="calculateUsage(this, ${waterPrev}, 'water-usage-${room.room_id}')">
+                            </td>
+                            <td class="usage-cell border-right-separator">
+                                <span id="water-usage-${room.room_id}" class="usage-badge ${waterClass}">
+                                    ${waterUsage}
+                                </span>
+                            </td>
+                            
+                            <!-- Electric -->
+                            <td>
+                                <input type="number" class="electric-prev form-control" 
+                                       value="${electricPrev}" 
+                                       step="0.01" min="0" readonly>
                             </td>
                             <td>
-                                <input type="number" class="electric-prev" 
-                                       value="${room.electric_previous || room.prev_electric || 0}" 
-                                       step="0.01" min="0">
-                            </td>
-                            <td>
-                                <input type="number" class="electric-curr" 
+                                <input type="number" class="electric-curr form-control" 
                                        value="${room.electric_current || ''}" 
                                        step="0.01" min="0"
-                                       placeholder="${room.prev_electric || 0}">
+                                       oninput="calculateUsage(this, ${electricPrev}, 'electric-usage-${room.room_id}')">
+                            </td>
+                            <td class="usage-cell">
+                                <span id="electric-usage-${room.room_id}" class="usage-badge ${electricClass}">
+                                    ${electricUsage}
+                                </span>
                             </td>
                         </tr>
-                    `).join('')}
+                        `;
+    }).join('')}
                 </tbody>
             </table>
         </div>
     `).join('');
+}
+
+function calculateUsage(input, prevVal, displayId) {
+    const currVal = parseFloat(input.value);
+    const displayElement = document.getElementById(displayId);
+
+    // If input is empty or 0, reset display
+    if (isNaN(currVal) || currVal === 0) {
+        displayElement.textContent = '-';
+        displayElement.className = 'usage-badge';
+        return;
+    }
+
+    const usage = currVal - prevVal;
+    displayElement.textContent = usage.toFixed(2);
+
+    if (usage < 0) {
+        displayElement.className = 'usage-badge negative';
+    } else {
+        displayElement.className = 'usage-badge positive';
+    }
 }
 
 async function saveAllMeters() {
@@ -680,116 +734,302 @@ function renderBills(month, year) {
         return;
     }
 
-    container.innerHTML = billsData.map(bill => `
-        <div class="bill-card" data-room-id="${bill.room_id}">
-            <div class="bill-header">
-                <div>
-                    <div class="bill-room">ห้อง ${bill.room_number}</div>
-                    <div class="bill-tenant">${bill.tenant_name}</div>
-                </div>
-                <div style="text-align:right;font-size:0.9rem;color:var(--text-muted);">
-                    ${monthNames[bill.bill_month - 1]} ${bill.bill_year + 543}
-                </div>
-            </div>
-            <div class="bill-body">
-                <div class="bill-row">
-                    <span class="bill-label">ค่าเช่าห้อง</span>
-                    <span class="bill-value">฿${formatNumber(bill.room_price)}</span>
-                </div>
-                <div class="bill-row">
-                    <span class="bill-label">
-                        ค่าน้ำ ${bill.water_type === 'unit' ?
+    // Group bills by floor
+    const groupedBills = {};
+    billsData.forEach(bill => {
+        if (!groupedBills[bill.floor_name]) {
+            groupedBills[bill.floor_name] = [];
+        }
+        groupedBills[bill.floor_name].push(bill);
+    });
+
+    container.innerHTML = Object.entries(groupedBills).map(([floorName, bills]) => `
+        <div class="bill-floor-section">
+            <h2 class="floor-title"><i class="fas fa-layer-group"></i> ${floorName}</h2>
+            <div class="bills-grid">
+                ${bills.map(bill => `
+                    <div class="bill-card ${bill.is_occupied ? 'occupied' : 'vacant'}" data-room-id="${bill.room_id}">
+                        <div class="bill-header">
+                            <div>
+                                <div class="bill-room">
+                                    ห้อง ${bill.room_number}
+                                    <span class="room-status-badge ${bill.is_occupied ? 'occupied' : 'vacant'}">
+                                        ${bill.is_occupied ? 'มีผู้เช่า' : 'ห้องว่าง'}
+                                    </span>
+                                </div>
+                                <div class="bill-tenant">${bill.tenant_name}</div>
+                                <div class="bill-invoice">#${bill.invoice_no || ''}</div>
+                            </div>
+                            <div style="text-align:right;font-size:0.9rem;color:var(--text-muted);">
+                                ${monthNames[bill.bill_month - 1]} ${bill.bill_year + 543}
+                            </div>
+                        </div>
+                        <div class="bill-body">
+                            <div class="bill-row">
+                                <span class="bill-label">ค่าเช่าห้อง</span>
+                                <span class="bill-value">฿${formatNumber(bill.room_price)}</span>
+                            </div>
+                            <div class="bill-row">
+                                <span class="bill-label">
+                                    ค่าน้ำ ${bill.water_type === 'unit' ?
             `(${bill.water_units} หน่วย × ฿${bill.water_rate})` :
             '(เหมาจ่าย)'}
-                    </span>
-                    <span class="bill-value">฿${formatNumber(bill.water_amount)}</span>
-                </div>
-                <div class="bill-row">
-                    <span class="bill-label">
-                        ค่าไฟ ${bill.electric_type === 'unit' ?
+                                </span>
+                                <span class="bill-value">฿${formatNumber(bill.water_amount)}</span>
+                            </div>
+                            <div class="bill-row">
+                                <span class="bill-label">
+                                    ค่าไฟ ${bill.electric_type === 'unit' ?
             `(${bill.electric_units} หน่วย × ฿${bill.electric_rate})` :
             '(เหมาจ่าย)'}
-                    </span>
-                    <span class="bill-value">฿${formatNumber(bill.electric_amount)}</span>
-                </div>
-                <div class="bill-row total">
-                    <span>รวมทั้งสิ้น</span>
-                    <span>฿${formatNumber(bill.total_amount)}</span>
-                </div>
-            </div>
-            <div class="bill-footer">
-                <button class="btn btn-sm btn-secondary" onclick="printBill(${bill.room_id}, ${month}, ${year})">
-                    <i class="fas fa-print"></i> พิมพ์
-                </button>
-                <button class="btn btn-sm btn-primary" onclick="downloadBill(${bill.room_id}, ${month}, ${year})">
-                    <i class="fas fa-download"></i> ดาวน์โหลด
-                </button>
+                                </span>
+                                <span class="bill-value">฿${formatNumber(bill.electric_amount)}</span>
+                            </div>
+                            <div class="bill-row">
+                                <span class="bill-label">ค่าขยะ</span>
+                                <span class="bill-value">${bill.trash_fee > 0 ? `฿${formatNumber(bill.trash_fee)}` : ''}</span>
+                            </div>
+                             <div class="bill-row">
+                                <span class="bill-label">เบ็ดเตล็ด</span>
+                                <span class="bill-value">฿${formatNumber(bill.other_amount || 0)}</span>
+                            </div>
+                            <div class="bill-row total">
+                                <span>รวมทั้งสิ้น</span>
+                                <span>฿${formatNumber(bill.total_amount)}</span>
+                            </div>
+                        </div>
+                        <div class="bill-footer">
+                            <button class="btn btn-sm btn-primary" style="background-color: var(--accent-primary); border-color: var(--accent-primary);" onclick="editBill(${bill.room_id})">
+                                <i class="fas fa-edit"></i> แก้ไข
+                            </button>
+                            <button class="btn btn-sm btn-secondary" onclick="printBill(${bill.room_id})">
+                                <i class="fas fa-print"></i> พิมพ์
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
             </div>
         </div>
     `).join('');
 }
 
-function printBill(roomId, month, year) {
+function printBill(roomId) {
     const bill = billsData.find(b => b.room_id === roomId);
     if (!bill) return;
 
     const monthNames = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
         'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
 
-    const printContent = `
-        <div class="bill-print">
-            <div class="bill-print-header">
-                <h1>ใบแจ้งค่าเช่า</h1>
-                <p>ประจำเดือน ${monthNames[bill.bill_month - 1]} ${bill.bill_year + 543}</p>
+    const dateStr = new Date().toLocaleDateString('th-TH', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+
+    const billingPeriod = `${monthNames[bill.bill_month - 1]} ${bill.bill_year + 543}`;
+
+    const getBillHTML = (type, badgeClass) => `
+        <div class="bill-section">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px;">
+                <div style="flex: 1;"></div>
+                <div style="flex: 3; text-align: center; margin-top: 5px;">
+                    <h2 style="font-size: 26px; font-weight: bold; margin: 0; border: none; padding: 0;">ใบแจ้งค่าเช่าห้องพัก</h2>
+                    <p style="font-size: 19px; margin: 3px 0 0 0;">ประจำเดือน ${billingPeriod}</p>
+                </div>
+                <div style="flex: 1; text-align: right;">
+                    <span class="${badgeClass}" style="display: inline-block; margin-bottom: 4px; padding: 2px 10px;">${type}</span>
+                    <p class="text-sm font-bold" style="margin: 0;">เลขที่: ${bill.invoice_no}</p>
+                </div>
             </div>
-            <div class="bill-print-info">
+            
+            <div class="info-row text-sm" style="margin-top: 8px;">
                 <div>
-                    <strong>ห้อง:</strong> ${bill.room_number}<br>
-                    <strong>ผู้เช่า:</strong> ${bill.tenant_name}
+                    <p>ชื่อผู้เช่า: <span class="input-line" style="min-width: 150px;">${bill.tenant_name}</span></p>
+                    <p class="mt-1">ห้องเลขที่: <span class="input-line" style="min-width: 60px;">${bill.room_number}</span> โทร: <span class="input-line" style="min-width: 120px;">${bill.tenant_phone}</span></p>
                 </div>
-                <div style="text-align:right;">
-                    <strong>วันที่ออกบิล:</strong> ${new Date().toLocaleDateString('th-TH')}
+                <div class="text-right">
+                    <p>วันที่: ${dateStr}</p>
                 </div>
             </div>
-            <table class="bill-print-table">
+            
+            <table class="bill-table text-sm">
                 <thead>
                     <tr>
+                        <th style="width: 32px;">ลำดับ</th>
                         <th>รายการ</th>
-                        <th>รายละเอียด</th>
-                        <th style="text-align:right;">จำนวนเงิน</th>
+                        <th style="width: 80px;">เลขเดิม</th>
+                        <th style="width: 80px;">เลขใหม่</th>
+                        <th style="width: 64px;">หน่วย</th>
+                        <th style="width: 80px;">ราคา/หน่วย</th>
+                        <th style="width: 96px;">จำนวนเงิน</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td>ค่าเช่าห้อง</td>
-                        <td>-</td>
-                        <td style="text-align:right;">฿${formatNumber(bill.room_price)}</td>
+                        <td>1</td>
+                        <td class="text-left pl-2">ค่าห้องพัก</td>
+                        <td colspan="4"></td>
+                        <td>${formatNumber(bill.room_price)}</td>
                     </tr>
                     <tr>
-                        <td>ค่าน้ำประปา</td>
-                        <td>${bill.water_type === 'unit' ?
-            `${bill.water_previous} - ${bill.water_current} = ${bill.water_units} หน่วย × ฿${bill.water_rate}` :
-            'เหมาจ่าย'}</td>
-                        <td style="text-align:right;">฿${formatNumber(bill.water_amount)}</td>
+                        <td>2</td>
+                        <td class="text-left pl-2">ค่าน้ำประปา</td>
+                        <td>${bill.water_type === 'unit' ? formatNumber(bill.water_previous) : ''}</td>
+                        <td>${bill.water_type === 'unit' ? formatNumber(bill.water_current) : ''}</td>
+                        <td>${bill.water_type === 'unit' ? formatNumber(bill.water_units) : '1'}</td>
+                        <td>${bill.water_type === 'unit' ? formatNumber(bill.water_rate) : formatNumber(bill.water_amount)}</td>
+                        <td>${formatNumber(bill.water_amount)}</td>
                     </tr>
                     <tr>
-                        <td>ค่าไฟฟ้า</td>
-                        <td>${bill.electric_type === 'unit' ?
-            `${bill.electric_previous} - ${bill.electric_current} = ${bill.electric_units} หน่วย × ฿${bill.electric_rate}` :
-            'เหมาจ่าย'}</td>
-                        <td style="text-align:right;">฿${formatNumber(bill.electric_amount)}</td>
+                        <td>3</td>
+                        <td class="text-left pl-2">ค่าไฟฟ้า</td>
+                        <td>${bill.electric_type === 'unit' ? formatNumber(bill.electric_previous) : ''}</td>
+                        <td>${bill.electric_type === 'unit' ? formatNumber(bill.electric_current) : ''}</td>
+                        <td>${bill.electric_type === 'unit' ? formatNumber(bill.electric_units) : '1'}</td>
+                        <td>${bill.electric_type === 'unit' ? formatNumber(bill.electric_rate) : formatNumber(bill.electric_amount)}</td>
+                        <td>${formatNumber(bill.electric_amount)}</td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td class="text-left pl-2">ค่าขยะ</td>
+                        <td colspan="4"></td>
+                        <td>${bill.trash_fee > 0 ? formatNumber(bill.trash_fee) : ''}</td>
+                    </tr>
+                    <tr>
+                        <td>5</td>
+                        <td class="text-left pl-2">ค่าเบ็ดเตล็ด</td>
+                        <td colspan="4"></td>
+                        <td>${bill.other_amount > 0 ? formatNumber(bill.other_amount) : ''}</td>
                     </tr>
                 </tbody>
+                <tfoot>
+                    <tr class="font-bold">
+                        <td colspan="6" class="text-right pr-2">รวมทั้งสิ้น</td>
+                        <td>${formatNumber(bill.total_amount)}</td>
+                    </tr>
+                </tfoot>
             </table>
-            <div class="bill-print-total">
-                รวมทั้งสิ้น: ฿${formatNumber(bill.total_amount)}
+            
+            <div class="signature-section text-sm">
+                <div>
+                    <p>กรุณาชำระภายในวันที่ <span class="font-semibold" style="color: #dc2626;">5</span> ของทุกเดือน</p>
+                    <p class="text-xs text-gray-500 mt-1">หากเกินกำหนดจะมีค่าปรับตามเงื่อนไขที่ตกลงกัน</p>
+                </div>
+                <div class="signature-box">
+                    <p style="margin-bottom: 20px;">ลงชื่อผู้รับเงิน</p>
+                    <p class="signature-line">(.............................)</p>
+                </div>
             </div>
         </div>
     `;
 
-    document.getElementById('print-container').innerHTML = printContent;
-    window.print();
+    document.getElementById('print-container').innerHTML = `
+        <div class="bill-container">
+            ${getBillHTML('สำเนา', 'copy-badge')}
+            <div class="dashed-line"></div>
+            ${getBillHTML('ต้นฉบับ', 'original-badge')}
+        </div>
+    `;
+
+    setTimeout(() => {
+        window.print();
+    }, 500);
 }
+
+function editBill(roomId) {
+    const bill = billsData.find(b => b.room_id === roomId);
+    if (!bill) return;
+
+    const content = `
+        <div class="edit-bill-modal">
+            <div class="modal-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>เลขที่บิล</label>
+                    <input type="text" id="edit-invoice-no" class="form-control" value="${bill.invoice_no}">
+                </div>
+                <div class="form-group">
+                    <label>ชื่อผู้เช่า</label>
+                    <input type="text" id="edit-tenant-name" class="form-control" value="${bill.tenant_name}">
+                </div>
+                <div class="form-group">
+                    <label>ค่าเช่าห้อง (฿)</label>
+                    <input type="number" id="edit-room-price" class="form-control" value="${bill.room_price}">
+                </div>
+                <div class="form-group">
+                    <label>ค่าน้ำ (฿)</label>
+                    <input type="number" id="edit-water-amount" class="form-control" value="${bill.water_amount}">
+                </div>
+                <div class="form-group">
+                    <label>ค่าไฟ (฿)</label>
+                    <input type="number" id="edit-electric-amount" class="form-control" value="${bill.electric_amount}">
+                </div>
+                <div class="form-group">
+                    <label>ค่าขยะ (฿)</label>
+                    <input type="number" id="edit-trash-fee" class="form-control" value="${bill.trash_fee}">
+                </div>
+                <div class="form-group">
+                    <label>เบ็ดเตล็ด (฿)</label>
+                    <input type="number" id="edit-other-amount" class="form-control" value="${bill.other_amount || 0}">
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label><strong>รวมเงินทั้งสิ้น (฿)</strong></label>
+                    <input type="number" id="edit-total-amount" class="form-control" value="${bill.total_amount}" readonly style="background: #f8f9fa; font-weight: bold; border: 2px solid var(--accent-primary);">
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 15px 0 0 0; display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn btn-secondary" onclick="closeModal()">ยกเลิก</button>
+                <button class="btn btn-primary" onclick="saveEditedBill(${roomId})">บันทึก</button>
+            </div>
+        </div>
+    `;
+
+    openModal(`แก้ไขข้อมูลบิล ห้อง ${bill.room_number}`, content);
+
+    // Auto-calculate total
+    setTimeout(() => {
+        const modalContainer = document.getElementById('modal-body');
+        const inputs = modalContainer.querySelectorAll('input[type="number"]');
+        inputs.forEach(input => {
+            if (input.id !== 'edit-total-amount') {
+                input.addEventListener('input', () => {
+                    const roomPrice = parseFloat(document.getElementById('edit-room-price').value) || 0;
+                    const waterAmount = parseFloat(document.getElementById('edit-water-amount').value) || 0;
+                    const electricAmount = parseFloat(document.getElementById('edit-electric-amount').value) || 0;
+                    const trashFee = parseFloat(document.getElementById('edit-trash-fee').value) || 0;
+                    const otherAmount = parseFloat(document.getElementById('edit-other-amount').value) || 0;
+
+                    document.getElementById('edit-total-amount').value = (roomPrice + waterAmount + electricAmount + trashFee + otherAmount).toFixed(2);
+                });
+            }
+        });
+    }, 200);
+}
+
+function saveEditedBill(roomId) {
+    const billIndex = billsData.findIndex(b => b.room_id === roomId);
+    if (billIndex === -1) return;
+
+    const editedBill = {
+        ...billsData[billIndex],
+        invoice_no: document.getElementById('edit-invoice-no').value,
+        tenant_name: document.getElementById('edit-tenant-name').value,
+        room_price: parseFloat(document.getElementById('edit-room-price').value) || 0,
+        water_amount: parseFloat(document.getElementById('edit-water-amount').value) || 0,
+        electric_amount: parseFloat(document.getElementById('edit-electric-amount').value) || 0,
+        trash_fee: parseFloat(document.getElementById('edit-trash-fee').value) || 0,
+        other_amount: parseFloat(document.getElementById('edit-other-amount').value) || 0,
+        total_amount: parseFloat(document.getElementById('edit-total-amount').value) || 0
+    };
+
+    billsData[billIndex] = editedBill;
+    closeModal();
+
+    // Refresh the UI to show changes
+    const currentMonth = document.getElementById('bill-month').value;
+    const currentYear = document.getElementById('bill-year').value;
+    renderBills(currentMonth, currentYear);
+}
+
 
 function downloadBill(roomId, month, year) {
     // For now, use print as download (users can save as PDF)

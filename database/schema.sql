@@ -17,6 +17,7 @@ CREATE TABLE settings (
 INSERT INTO settings (setting_key, setting_value) VALUES
 ('water_rate', '18'),
 ('electric_rate', '8'),
+('trash_fee', '30'),
 ('default_calculation_type', 'unit');
 
 -- ตารางชั้น
@@ -85,6 +86,7 @@ CREATE TABLE meter_readings (
 -- ตารางบิล
 CREATE TABLE bills (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    invoice_no VARCHAR(20) UNIQUE,
     room_id INT NOT NULL,
     tenant_id INT,
     bill_month INT NOT NULL,
@@ -96,6 +98,7 @@ CREATE TABLE bills (
     electric_units DECIMAL(10,2) DEFAULT 0,
     electric_rate DECIMAL(10,2) DEFAULT 0,
     electric_amount DECIMAL(10,2) DEFAULT 0,
+    trash_fee DECIMAL(10,2) DEFAULT 0,
     other_amount DECIMAL(10,2) DEFAULT 0,
     other_description TEXT,
     total_amount DECIMAL(10,2) DEFAULT 0,
