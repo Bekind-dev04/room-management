@@ -15,6 +15,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initApp() {
+    // Check Auth
+    await checkAuthStatus();
+
     // Set current date
     updateCurrentDate();
 
@@ -24,6 +27,9 @@ async function initApp() {
     // Setup year selectors
     setupYearSelectors();
 
+    // Setup Inactivity Timer
+    setupInactivityTimer();
+
     // Set current month
     const now = new Date();
     document.getElementById('meter-month').value = now.getMonth() + 1;
@@ -32,6 +38,43 @@ async function initApp() {
     // Load initial data
     await loadSettings();
     await loadFloorsAndRooms();
+}
+
+let inactivityTimeout;
+function setupInactivityTimer() {
+    const resetTimer = () => {
+        clearTimeout(inactivityTimeout);
+        inactivityTimeout = setTimeout(logout, 15 * 60 * 1000); // 15 minutes
+    };
+
+    // Events that reset the timer
+    window.onload = resetTimer;
+    window.onmousemove = resetTimer;
+    window.onmousedown = resetTimer;
+    window.ontouchstart = resetTimer;
+    window.onclick = resetTimer;
+    window.onkeydown = resetTimer;
+}
+
+async function checkAuthStatus() {
+    try {
+        const res = await fetch('/api/auth/check');
+        const data = await res.json();
+        if (!data.authenticated) {
+            window.location.href = '/login.html';
+        }
+    } catch (error) {
+        window.location.href = '/login.html';
+    }
+}
+
+async function logout() {
+    try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        window.location.href = '/login.html';
+    } catch (error) {
+        window.location.href = '/login.html';
+    }
 }
 
 function updateCurrentDate() {
@@ -97,6 +140,7 @@ function setupYearSelectors() {
 // ============ API Helpers ============
 async function apiGet(endpoint) {
     const res = await fetch(`${API_BASE}${endpoint}`);
+    if (res.status === 401) window.location.href = '/login.html';
     if (!res.ok) throw new Error('API Error');
     return res.json();
 }
@@ -107,6 +151,7 @@ async function apiPost(endpoint, data) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
     });
+    if (res.status === 401) window.location.href = '/login.html';
     if (!res.ok) throw new Error('API Error');
     return res.json();
 }
@@ -117,12 +162,14 @@ async function apiPut(endpoint, data) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
     });
+    if (res.status === 401) window.location.href = '/login.html';
     if (!res.ok) throw new Error('API Error');
     return res.json();
 }
 
 async function apiDelete(endpoint) {
     const res = await fetch(`${API_BASE}${endpoint}`, { method: 'DELETE' });
+    if (res.status === 401) window.location.href = '/login.html';
     if (!res.ok) throw new Error('API Error');
     return res.json();
 }

@@ -8,9 +8,9 @@
     --bg-secondary: #1a1a2e;
     --bg-card: #16213e;
     --bg-card-hover: #1f3460;
-    --accent-primary: #4f46e5;
-    --accent-secondary: #7c3aed;
-    --accent-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    --accent-primary: #3b82f6;
+    --accent-secondary: #06b6d4;
+    --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
     --success: #10b981;
     --warning: #f59e0b;
     --danger: #ef4444;
@@ -308,7 +308,7 @@ body {
 .form-control:focus {
     outline: none;
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
 .form-control::placeholder {
@@ -422,7 +422,7 @@ select.form-control {
 .room-card:hover {
     transform: translateY(-4px);
     border-color: var(--accent-primary);
-    box-shadow: 0 8px 25px rgba(79, 70, 229, 0.2);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);
 }
 
 .room-card.occupied {
@@ -635,7 +635,7 @@ select.form-control {
 }
 
 .bill-card.occupied .bill-room {
-    color: #4f46e5;
+    color: #3b82f6;
     /* Indigo for occupied room number */
 }
 
@@ -1086,10 +1086,10 @@ select.form-control {
 }
 
 .room-status-badge.occupied {
-    background: #7c3aed;
+    background: var(--accent-primary);
     color: white;
-    border: 1px solid #7c3aed;
-    box-shadow: 0 2px 4px rgba(124, 58, 237, 0.3);
+    border: 1px solid var(--accent-primary);
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
 }
 
 .room-status-badge.vacant {
@@ -1106,13 +1106,13 @@ select.form-control {
 }
 
 .bill-card.occupied {
-    border: 2px solid #7c3aed;
+    border: 2px solid var(--accent-primary);
     background: white;
-    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
 }
 
 .bill-card.occupied .bill-room {
-    color: #7c3aed;
+    color: var(--accent-primary);
 }
 
 /* ============ Sidebar Footer Refinement ============ */
@@ -1345,4 +1345,72 @@ select.form-control {
         width: 70px;
         padding: 8px 4px;
     }
+}
+
+/* ============ Login Page ============ */
+.login-body {
+    background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+}
+
+.login-card {
+    background: rgba(30, 41, 59, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 40px;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+.login-logo {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    display: inline-block;
+}
+
+.login-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: white;
+}
+
+.login-subtitle {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    margin-bottom: 32px;
+}
+
+.login-form .form-control {
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    text-align: center;
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    margin-bottom: 24px;
+    height: 60px;
+}
+
+.login-form .form-control:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+}
+
+.login-footer {
+    margin-top: 32px;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.login-footer a {
+    color: var(--accent-primary);
+    text-decoration: none;
+    font-weight: 500;
 }
