@@ -84,13 +84,46 @@ function updateCurrentDate() {
 }
 
 function setupNavigation() {
+    // Nav Items
     document.querySelectorAll('.nav-item').forEach(item => {
         item.addEventListener('click', (e) => {
+            if (item.classList.contains('logout-link')) return; // Let logout handle itself
+
             e.preventDefault();
             const page = item.dataset.page;
             navigateTo(page);
+
+            // Close sidebar on mobile
+            if (window.innerWidth <= 1024) {
+                toggleSidebar(false);
+            }
         });
     });
+
+    // Mobile Menu Toggles
+    const mobileBtn = document.getElementById('mobile-menu-btn');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    if (mobileBtn) {
+        mobileBtn.addEventListener('click', () => toggleSidebar(true));
+    }
+
+    if (overlay) {
+        overlay.addEventListener('click', () => toggleSidebar(false));
+    }
+}
+
+function toggleSidebar(show) {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    if (show) {
+        sidebar.classList.add('open');
+        overlay.classList.add('active');
+    } else {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+    }
 }
 
 function navigateTo(page) {

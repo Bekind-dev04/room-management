@@ -1291,10 +1291,81 @@ select.form-control {
     font-size: 0.8rem;
 }
 
+/* ============ Mobile Header ============ */
+.mobile-header {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 90;
+}
+
+.mobile-header .logo {
+    font-size: 1.2rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.mobile-header .logo i {
+    color: var(--accent-primary);
+}
+
+.mobile-menu-btn {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: 1.4rem;
+    cursor: pointer;
+    padding: 4px;
+}
+
+/* ============ Sidebar Overlay ============ */
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+    z-index: 98;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.sidebar-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* ============ Responsive Tables ============ */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 /* ============ Responsive ============ */
 @media (max-width: 1024px) {
+    .mobile-header {
+        display: flex;
+    }
+
     .sidebar {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 99;
         transform: translateX(-100%);
+        box-shadow: var(--shadow-lg);
     }
 
     .sidebar.open {
@@ -1303,6 +1374,15 @@ select.form-control {
 
     .main-content {
         margin-left: 0;
+        padding-top: 0;
+        /* Remove top padding as header is sticky */
+    }
+
+    /* iOS Input Zoom Fix */
+    input,
+    select,
+    textarea {
+        font-size: 16px !important;
     }
 }
 
