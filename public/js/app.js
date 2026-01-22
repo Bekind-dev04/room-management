@@ -656,7 +656,8 @@ function renderMeterData(month, year) {
                 <i class="fas fa-layer-group"></i>
                 ${floor.name} - ${monthNames[month - 1]} ${parseInt(year) + 543}
             </div>
-            <table class="meters-table">
+            <div class="table-responsive">
+                <table class="meters-table">
                 <thead>
                     <tr>
                         <th rowspan="2" style="width: 100px;">ห้อง</th>
@@ -730,7 +731,9 @@ function renderMeterData(month, year) {
                         `;
     }).join('')}
                 </tbody>
-            </table>
+                </tbody>
+                </table>
+            </div>
         </div>
     `).join('');
 }
@@ -1174,17 +1177,18 @@ function renderTenants() {
     }
 
     container.innerHTML = `
-        <table class="tenants-table">
-            <thead>
-                <tr>
-                    <th>ชื่อผู้เช่า</th>
-                    <th>ห้อง</th>
-                    <th>เบอร์โทร</th>
-                    <th>สถานะ</th>
-                    <th>จัดการ</th>
-                </tr>
-            </thead>
-            <tbody>
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ชื่อ-นามสกุล</th>
+                        <th>ห้อง</th>
+                        <th>เบอร์โทร</th>
+                        <th>สถานะ</th>
+                        <th>จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody>
                 ${tenantsData.map(tenant => `
                     <tr>
                         <td><strong>${tenant.name}</strong></td>
@@ -1211,8 +1215,9 @@ function renderTenants() {
                         </td>
                     </tr>
                 `).join('')}
-            </tbody>
-        </table>
+                </tbody>
+            </table>
+        </div>
     `;
 }
 

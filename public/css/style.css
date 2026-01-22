@@ -1354,8 +1354,17 @@ select.form-control {
 
 /* ============ Responsive ============ */
 @media (max-width: 1024px) {
+    .app-container {
+        flex-direction: column;
+        overflow-x: hidden;
+    }
+
     .mobile-header {
         display: flex;
+        width: 100%;
+        position: sticky;
+        top: 0;
+        z-index: 90;
     }
 
     .sidebar {
@@ -1375,8 +1384,32 @@ select.form-control {
     .main-content {
         margin-left: 0 !important;
         width: 100%;
+        padding: 16px;
+        /* Reduced padding */
         padding-top: 0;
-        /* Remove top padding as header is sticky */
+    }
+
+    /* Scaling Content Down */
+    .room-card {
+        padding: 16px;
+    }
+
+    .room-number {
+        font-size: 1.5rem;
+        /* Smaller than desktop 1.8rem */
+    }
+
+    .room-price {
+        font-size: 1rem;
+    }
+
+    .page-header h1 {
+        font-size: 1.4rem;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        font-size: 0.9rem;
     }
 
     /* iOS Input Zoom Fix */
