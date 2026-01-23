@@ -38,6 +38,9 @@ async function initApp() {
     // Load initial data
     await loadSettings();
     await loadFloorsAndRooms();
+
+    // Setup Search
+    setupSearch();
 }
 
 let inactivityTimeout;
@@ -1153,26 +1156,115 @@ function downloadBill(roomId, month, year) {
 }
 
 // ============ Tenants ============
+let searchResults = null;
+
 async function loadTenants() {
     try {
         tenantsData = await apiGet('/tenants');
+        searchResults = null;
         renderTenants();
     } catch (error) {
         console.error('Error loading tenants:', error);
     }
 }
 
-function renderTenants() {
-    const container = document.getElementById('tenants-container');
+function setupSearch() {
+    const searchInput = document.getElementById('tenant-search');
+    if (!searchInput) return;
 
-    if (tenantsData.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        if (!query) {
+            searchResults = null;
+        } else {
+            searchResults = tenantsData.filter(tenant =>
+                (tenant.name && tenant.name.toLowerCase().includes(query)) ||
+                (tenant.room_number && tenant.room_number.toLowerCase().includes(query)) ||
+                (tenant.phone && tenant.phone.includes(query)) ||
+                (tenant.id_number && tenant.id_number.includes(query))
+            );
+        }
+        renderTenants(searchResults);
+    });
+}
+
+function renderTenantStats() {
+    const statsContainer = document.getElementById('tenant-stats-container');
+    if (!statsContainer) return;
+
+    const activeTenants = tenantsData.filter(t => t.is_active).length;
+    const inactiveTenants = tenantsData.length - activeTenants;
+    const occupiedRooms = new Set(tenantsData.filter(t => t.is_active && t.room_number).map(t => t.room_number)).size;
+
+    statsContainer.innerHTML = `
+        <div class="stat-card">
+            <div class="stat-icon blue">
                 <i class="fas fa-users"></i>
-                <h3>ยังไม่มีข้อมูลผู้เช่า</h3>
-                <p>คลิก "เพิ่มผู้เช่า" เพื่อเริ่มต้น</p>
             </div>
-        `;
+            <div class="stat-info">
+                <span class="stat-value">${tenantsData.length}</span>
+                <span class="stat-label">ผู้เช่าทั้งหมด</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <i class="fas fa-user-check"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value">${activeTenants}</span>
+                <span class="stat-label">กำลังเช่าอยู่</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon purple">
+                <i class="fas fa-bed"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value">${occupiedRooms}</span>
+                <span class="stat-label">ห้องที่ไม่ว่าง</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon orange">
+                <i class="fas fa-user-clock"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value">${inactiveTenants}</span>
+                <span class="stat-label">ย้ายออกแล้ว</span>
+            </div>
+        </div>
+    `;
+}
+
+function renderTenants(filteredData = null) {
+    const container = document.getElementById('tenants-container');
+    const displayData = filteredData || tenantsData;
+
+    // Render stats only if viewing full list (or first load)
+    if (!filteredData) {
+        renderTenantStats();
+    }
+
+    if (displayData.length === 0) {
+        if (filteredData !== null) {
+            // No search results
+            container.innerHTML = `
+                <div class="no-results">
+                    <i class="fas fa-search"></i>
+                    <h3>ไม่พบข้อมูลที่คุณค้นหา</h3>
+                    <p>ลองเปลี่ยนคำค้นหาใหม่อีกครั้ง</p>
+                </div>
+            `;
+        } else {
+            // No data at all
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-users"></i>
+                    <h3>ยังไม่มีข้อมูลผู้เช่า</h3>
+                    <p>คลิก "เพิ่มผู้เช่า" เพื่อเริ่มต้น</p>
+                </div>
+            `;
+        }
         return;
     }
 
@@ -1189,7 +1281,7 @@ function renderTenants() {
                     </tr>
                 </thead>
                 <tbody>
-                ${tenantsData.map(tenant => `
+                ${displayData.map(tenant => `
                     <tr>
                         <td data-label="ชื่อ-นามสกุล">
                             <a class="tenant-name-link" onclick="showTenantDetail(${tenant.id})">

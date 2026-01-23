@@ -170,12 +170,20 @@
                     <div class="page-header">
                         <h1><i class="fas fa-users"></i> ข้อมูลผู้เช่า</h1>
                         <div class="header-actions">
+                            <div class="search-container">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="tenant-search" class="form-control search-input"
+                                    placeholder="ค้นหาชื่อ, ห้อง, เบอร์โทร...">
+                            </div>
                             <button class="btn btn-primary" onclick="showAddTenantModal()">
                                 <i class="fas fa-user-plus"></i> เพิ่มผู้เช่า
                             </button>
                         </div>
                     </div>
                     <div class="page-content">
+                        <!-- Tenant Stats Row -->
+                        <div id="tenant-stats-container" class="stats-row"></div>
+
                         <div id="tenants-container" class="tenants-table-container"></div>
                     </div>
                 </div>
