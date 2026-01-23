@@ -1157,10 +1157,18 @@ function downloadBill(roomId, month, year) {
 
 // ============ Tenants ============
 let searchResults = null;
+let tenantSortField = 'room_number';
+let tenantSortOrder = 'asc'; // 'asc' or 'desc'
 
 async function loadTenants() {
     try {
         tenantsData = await apiGet('/tenants');
+
+        // Initial Sort by Room Number
+        tenantSortField = 'room_number';
+        tenantSortOrder = 'asc';
+        sortTenantsData();
+
         searchResults = null;
         renderTenants();
     } catch (error) {
@@ -1226,6 +1234,42 @@ function renderTenantStats() {
     `;
 }
 
+function handleTenantSort(field) {
+    if (tenantSortField === field) {
+        tenantSortOrder = tenantSortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+        tenantSortField = field;
+        tenantSortOrder = 'asc';
+    }
+
+    sortTenantsData();
+    renderTenants(searchResults);
+}
+
+function sortTenantsData() {
+    const sortFn = (a, b) => {
+        let valA = a[tenantSortField] || '';
+        let valB = b[tenantSortField] || '';
+
+        // Natural sort for room numbers
+        if (tenantSortField === 'room_number') {
+            return tenantSortOrder === 'asc'
+                ? valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' })
+                : valB.localeCompare(valA, undefined, { numeric: true, sensitivity: 'base' });
+        }
+
+        // Standard sort for others
+        if (valA < valB) return tenantSortOrder === 'asc' ? -1 : 1;
+        if (valA > valB) return tenantSortOrder === 'asc' ? 1 : -1;
+        return 0;
+    };
+
+    tenantsData.sort(sortFn);
+    if (searchResults) {
+        searchResults.sort(sortFn);
+    }
+}
+
 function renderTenants(filteredData = null) {
     const container = document.getElementById('tenants-container');
     const displayData = filteredData || tenantsData;
@@ -1263,10 +1307,25 @@ function renderTenants(filteredData = null) {
             <table class="tenants-table">
                 <thead>
                     <tr>
-                        <th>ชื่อ-นามสกุล</th>
-                        <th>ห้อง</th>
+                        <th class="sortable ${tenantSortField === 'name' ? 'active-sort' : ''}" onclick="handleTenantSort('name')">
+                            <div class="sort-container">
+                                ชื่อ-นามสกุล
+                                <i class="fas fa-sort${tenantSortField === 'name' ? (tenantSortOrder === 'asc' ? '-up' : '-down') : ''} sort-icon"></i>
+                            </div>
+                        </th>
+                        <th class="sortable ${tenantSortField === 'room_number' ? 'active-sort' : ''}" onclick="handleTenantSort('room_number')">
+                            <div class="sort-container">
+                                ห้อง
+                                <i class="fas fa-sort${tenantSortField === 'room_number' ? (tenantSortOrder === 'asc' ? '-up' : '-down') : ''} sort-icon"></i>
+                            </div>
+                        </th>
                         <th>เบอร์โทร</th>
-                        <th>สถานะ</th>
+                        <th class="sortable ${tenantSortField === 'is_active' ? 'active-sort' : ''}" onclick="handleTenantSort('is_active')">
+                            <div class="sort-container">
+                                สถานะ
+                                <i class="fas fa-sort${tenantSortField === 'is_active' ? (tenantSortOrder === 'asc' ? '-up' : '-down') : ''} sort-icon"></i>
+                            </div>
+                        </th>
                         <th>จัดการ</th>
                     </tr>
                 </thead>

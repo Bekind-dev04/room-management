@@ -1917,6 +1917,35 @@ select.form-control {
     }
 }
 
+/* ============ Table Sorting ============ */
+.tenants-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+}
+
+.tenants-table th.sortable:hover {
+    background-color: var(--glass-bg);
+}
+
+.sort-container {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sort-icon {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    opacity: 0.4;
+    transition: all 0.2s;
+}
+
+.tenants-table th.active-sort .sort-icon {
+    opacity: 1;
+    color: var(--accent-primary);
+}
+
 .login-footer a {
     color: var(--accent-primary);
     text-decoration: none;
