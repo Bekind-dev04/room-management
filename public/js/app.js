@@ -495,8 +495,8 @@ async function showRoomDetail(roomId) {
                             <div style="font-size:0.9rem;"><i class="fas fa-phone"></i> ${room.tenant_phone || '-'}</div>
                         </div>
                         <div style="display:flex; gap:8px;">
-                            <button type="button" class="btn btn-sm btn-secondary" onclick="showEditTenantModal(${room.tenant_id})">
-                                <i class="fas fa-user-edit"></i> ข้อมูล
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="showTenantDetail(${room.tenant_id})">
+                                <i class="fas fa-search-plus"></i> ข้อมูล
                             </button>
                             <button type="button" class="btn btn-sm btn-warning" onclick="moveOutTenant(${room.tenant_id})" style="color:white;">
                                 <i class="fas fa-sign-out-alt"></i> ย้ายออก
@@ -1310,8 +1310,20 @@ function renderTenants(filteredData = null) {
     `;
 }
 
-function showTenantDetail(tenantId) {
-    const tenant = tenantsData.find(t => t.id === tenantId);
+async function showTenantDetail(tenantId) {
+    let tenant = tenantsData.find(t => t.id === tenantId);
+
+    // If not found in local cache (e.g. called from Room Layout where all tenants might not be loaded)
+    if (!tenant) {
+        try {
+            tenant = await apiGet(`/tenants/${tenantId}`);
+        } catch (error) {
+            console.error('Error fetching tenant details:', error);
+            showToast('ไม่พบข้อมูลผู้เช่า', 'error');
+            return;
+        }
+    }
+
     if (!tenant) return;
 
     const modalContent = `
