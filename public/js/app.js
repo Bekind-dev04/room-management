@@ -168,8 +168,8 @@ function setupYearSelectors() {
     const billYear = document.getElementById('bill-year');
 
     for (let y = currentYear; y >= currentYear - 5; y--) {
-        meterYear.innerHTML += `<option value="${y - 543}">${y}</option>`;
-        billYear.innerHTML += `<option value="${y - 543}">${y}</option>`;
+        meterYear.innerHTML += `<option value="${y}">${y}</option>`;
+        billYear.innerHTML += `<option value="${y}">${y}</option>`;
     }
 }
 
