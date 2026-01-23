@@ -677,7 +677,7 @@ function renderMeterData(month, year) {
                     </tr>
                 </thead>
                 <tbody>
-                    ${floor.rooms.filter(r => r.reading_id || r.is_occupied).map(room => {
+                    ${floor.rooms.map(room => {
         const waterPrev = parseFloat(room.water_previous) || parseFloat(room.prev_water) || 0;
         const waterCurr = parseFloat(room.water_current) || 0;
         // Only show usage if current reading is entered (> 0)
