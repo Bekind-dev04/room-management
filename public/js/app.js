@@ -1194,7 +1194,6 @@ function renderTenantStats() {
 
     const activeTenants = tenantsData.filter(t => t.is_active).length;
     const inactiveTenants = tenantsData.length - activeTenants;
-    const occupiedRooms = new Set(tenantsData.filter(t => t.is_active && t.room_number).map(t => t.room_number)).size;
 
     statsContainer.innerHTML = `
         <div class="stat-card">
@@ -1213,15 +1212,6 @@ function renderTenantStats() {
             <div class="stat-info">
                 <span class="stat-value">${activeTenants}</span>
                 <span class="stat-label">กำลังเช่าอยู่</span>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon purple">
-                <i class="fas fa-bed"></i>
-            </div>
-            <div class="stat-info">
-                <span class="stat-value">${occupiedRooms}</span>
-                <span class="stat-label">ห้องที่ไม่ว่าง</span>
             </div>
         </div>
         <div class="stat-card">
@@ -1270,7 +1260,7 @@ function renderTenants(filteredData = null) {
 
     container.innerHTML = `
         <div class="table-responsive">
-            <table class="table">
+            <table class="tenants-table">
                 <thead>
                     <tr>
                         <th>ชื่อ-นามสกุล</th>

@@ -717,6 +717,8 @@ select.form-control {
 .tenants-table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
+    /* Ensures column widths are respected */
 }
 
 .tenants-table th,
@@ -724,6 +726,12 @@ select.form-control {
     padding: 16px 20px;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
+}
+
+.tenants-table th:last-child,
+.tenants-table td:last-child {
+    border-right: none;
 }
 
 .tenants-table th {
@@ -734,6 +742,40 @@ select.form-control {
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
+
+/* Specific Column Widths for Desktop */
+.tenants-table th:nth-child(1),
+.tenants-table td:nth-child(1) {
+    width: 30%;
+}
+
+/* Name */
+.tenants-table th:nth-child(2),
+.tenants-table td:nth-child(2) {
+    width: 10%;
+    text-align: center;
+}
+
+/* Room */
+.tenants-table th:nth-child(3),
+.tenants-table td:nth-child(3) {
+    width: 20%;
+}
+
+/* Phone */
+.tenants-table th:nth-child(4),
+.tenants-table td:nth-child(4) {
+    width: 15%;
+    text-align: center;
+}
+
+/* Status */
+.tenants-table th:nth-child(5),
+.tenants-table td:nth-child(5) {
+    width: 25%;
+}
+
+/* Actions */
 
 .tenants-table tr:hover td {
     background: var(--glass-bg);
@@ -1477,20 +1519,27 @@ select.form-control {
 }
 
 @media (max-width: 768px) {
-    .table thead {
+
+    .table thead,
+    .tenants-table thead {
         display: none;
         /* Hide table headers on mobile */
     }
 
     .table,
+    .tenants-table,
     .table tbody,
+    .tenants-table tbody,
     .table tr,
-    .table td {
+    .tenants-table tr,
+    .table td,
+    .tenants-table td {
         display: block;
         width: 100%;
     }
 
-    .table tr {
+    .table tr,
+    .tenants-table tr {
         margin-bottom: 20px;
         background: var(--bg-card);
         border-radius: var(--border-radius);
@@ -1499,7 +1548,8 @@ select.form-control {
         border: 1px solid var(--border-color);
     }
 
-    .table td {
+    .table td,
+    .tenants-table td {
         text-align: right;
         padding: 12px 0;
         position: relative;
@@ -1508,15 +1558,19 @@ select.form-control {
         justify-content: space-between;
         align-items: center;
         gap: 15px;
+        border-right: none !important;
+        /* Remove desktop vertical grid on mobile cards */
     }
 
-    .table td:last-child {
+    .table td:last-child,
+    .tenants-table td:last-child {
         border-bottom: none;
         padding-top: 16px;
         justify-content: flex-end;
     }
 
-    .table td::before {
+    .table td::before,
+    .tenants-table td::before {
         content: attr(data-label);
         font-weight: 600;
         color: var(--text-secondary);
