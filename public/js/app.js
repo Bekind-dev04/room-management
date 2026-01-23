@@ -657,7 +657,7 @@ function renderMeterData(month, year) {
         <div class="meter-floor-section">
             <div class="meter-floor-header">
                 <i class="fas fa-layer-group"></i>
-                ${floor.name} - ${monthNames[month - 1]} ${parseInt(year) + 543}
+                ${floor.name} - ${monthNames[month - 1]} ${year}
             </div>
             <div class="table-responsive">
                 <table class="meters-table">

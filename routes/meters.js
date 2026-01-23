@@ -30,7 +30,7 @@ router.get('/rooms/:month/:year', async (req, res) => {
 
         const [rows] = await db.query(`
             SELECT 
-                r.id as room_id, r.room_number, r.room_price,
+                r.id as room_id, r.room_number, r.room_price, r.is_occupied,
                 r.water_calculation_type, r.water_fixed_amount,
                 r.electric_calculation_type, r.electric_fixed_amount,
                 f.id as floor_id, f.name as floor_name,
