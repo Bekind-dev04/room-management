@@ -144,6 +144,12 @@ body {
     min-height: 100vh;
 }
 
+.content-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+}
+
 /* Page Structure */
 .page {
     display: none;
@@ -1468,6 +1474,64 @@ select.form-control {
     width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+    .table thead {
+        display: none;
+        /* Hide table headers on mobile */
+    }
+
+    .table,
+    .table tbody,
+    .table tr,
+    .table td {
+        display: block;
+        width: 100%;
+    }
+
+    .table tr {
+        margin-bottom: 20px;
+        background: var(--bg-card);
+        border-radius: var(--border-radius);
+        padding: 16px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border-color);
+    }
+
+    .table td {
+        text-align: right;
+        padding: 12px 0;
+        position: relative;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .table td:last-child {
+        border-bottom: none;
+        padding-top: 16px;
+        justify-content: flex-end;
+    }
+
+    .table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        text-align: left;
+    }
+
+    .table-responsive {
+        overflow: visible;
+        /* Disable horizontal scroll if cards are used */
+    }
+
+    .tenant-name-link {
+        font-size: 1.1rem;
+    }
 }
 
 /* ============ Responsive ============ */

@@ -1191,21 +1191,21 @@ function renderTenants() {
                 <tbody>
                 ${tenantsData.map(tenant => `
                     <tr>
-                        <td>
+                        <td data-label="ชื่อ-นามสกุล">
                             <a class="tenant-name-link" onclick="showTenantDetail(${tenant.id})">
                                 <strong>${tenant.name}</strong>
                                 <i class="fas fa-external-link-alt" style="font-size: 0.7rem; opacity: 0.5;"></i>
                             </a>
                         </td>
-                        <td><span class="badge ${tenant.room_id ? 'badge-primary' : 'badge-light'}">${tenant.room_number || 'ไม่ระบุ'}</span></td>
-                        <td>${tenant.phone || '-'}</td>
-                        <td>
+                        <td data-label="ห้อง"><span class="badge ${tenant.room_id ? 'badge-primary' : 'badge-light'}">${tenant.room_number || 'ไม่ระบุ'}</span></td>
+                        <td data-label="เบอร์โทร">${tenant.phone || '-'}</td>
+                        <td data-label="สถานะ">
                             <span class="tenant-status ${tenant.is_active ? 'active' : 'inactive'}">
                                 <i class="fas fa-circle" style="font-size:0.5rem;"></i>
                                 ${tenant.is_active ? 'เช่าอยู่' : 'ย้ายออก'}
                             </span>
                         </td>
-                        <td>
+                        <td data-label="จัดการ">
                             <div style="display: flex; gap: 8px;">
                                 <button class="btn btn-icon btn-secondary" onclick="showEditTenantModal(${tenant.id})" title="แก้ไข">
                                     <i class="fas fa-edit"></i>
