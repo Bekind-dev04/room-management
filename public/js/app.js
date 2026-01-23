@@ -1191,8 +1191,13 @@ function renderTenants() {
                 <tbody>
                 ${tenantsData.map(tenant => `
                     <tr>
-                        <td><strong>${tenant.name}</strong></td>
-                        <td>${tenant.room_number || '-'}</td>
+                        <td>
+                            <a class="tenant-name-link" onclick="showTenantDetail(${tenant.id})">
+                                <strong>${tenant.name}</strong>
+                                <i class="fas fa-external-link-alt" style="font-size: 0.7rem; opacity: 0.5;"></i>
+                            </a>
+                        </td>
+                        <td><span class="badge ${tenant.room_id ? 'badge-primary' : 'badge-light'}">${tenant.room_number || 'ไม่ระบุ'}</span></td>
                         <td>${tenant.phone || '-'}</td>
                         <td>
                             <span class="tenant-status ${tenant.is_active ? 'active' : 'inactive'}">
@@ -1201,17 +1206,19 @@ function renderTenants() {
                             </span>
                         </td>
                         <td>
-                            <button class="btn btn-icon btn-secondary" onclick="showEditTenantModal(${tenant.id})">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            ${tenant.is_active ? `
-                                <button class="btn btn-icon btn-warning" onclick="moveOutTenant(${tenant.id})" title="ย้ายออก">
-                                    <i class="fas fa-sign-out-alt"></i>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-icon btn-secondary" onclick="showEditTenantModal(${tenant.id})" title="แก้ไข">
+                                    <i class="fas fa-edit"></i>
                                 </button>
-                            ` : ''}
-                            <button class="btn btn-icon btn-danger" onclick="deleteTenant(${tenant.id})">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                                ${tenant.is_active ? `
+                                    <button class="btn btn-icon btn-warning" onclick="moveOutTenant(${tenant.id})" title="ย้ายออก">
+                                        <i class="fas fa-sign-out-alt"></i>
+                                    </button>
+                                ` : ''}
+                                <button class="btn btn-icon btn-danger" onclick="deleteTenant(${tenant.id})" title="ลบ">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 `).join('')}
@@ -1219,6 +1226,87 @@ function renderTenants() {
             </table>
         </div>
     `;
+}
+
+function showTenantDetail(tenantId) {
+    const tenant = tenantsData.find(t => t.id === tenantId);
+    if (!tenant) return;
+
+    const modalContent = `
+        <div class="tenant-detail-view">
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">ชื่อ-นามสกุล</span>
+                    <span class="detail-value">${tenant.name}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">ห้องที่พัก</span>
+                    <span class="detail-value">${tenant.room_number || '-'} (${tenant.floor_name || 'ไม่ระบุชั้น'})</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">เบอร์โทรศัพท์</span>
+                    <span class="detail-value">${tenant.phone || '-'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">เลขบัตรประชาชน</span>
+                    <span class="detail-value">${tenant.id_number || '-'}</span>
+                </div>
+                <div class="detail-item" style="grid-column: span 2;">
+                    <span class="detail-label">ที่อยู่</span>
+                    <span class="detail-value">${tenant.address || '-'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">วันที่เข้าพัก</span>
+                    <span class="detail-value">${tenant.move_in_date ? new Date(tenant.move_in_date).toLocaleDateString('th-TH') : '-'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">วันที่ย้ายออก</span>
+                    <span class="detail-value">${tenant.move_out_date ? new Date(tenant.move_out_date).toLocaleDateString('th-TH') : '-'}</span>
+                </div>
+            </div>
+
+            <h4 style="margin: 24px 0 16px; display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-id-card" style="color: var(--accent-primary);"></i> เอกสารประกอบ
+            </h4>
+            
+            <div class="document-gallery">
+                <div class="document-card">
+                    <div class="document-header">
+                        <span class="document-title">รูปบัตรประชาชน</span>
+                        ${tenant.id_card_image ? `<a href="${tenant.id_card_image}" target="_blank" class="btn btn-sm btn-icon"><i class="fas fa-expand"></i></a>` : ''}
+                    </div>
+                    <div class="document-preview" ${tenant.id_card_image ? `onclick="window.open('${tenant.id_card_image}', '_blank')"` : ''}>
+                        ${tenant.id_card_image ?
+            `<img src="${tenant.id_card_image}" alt="ID Card">` :
+            `<div class="no-doc"><i class="fas fa-id-card"></i><span>ไม่มีรูปบัตรประชาชน</span></div>`
+        }
+                    </div>
+                </div>
+                
+                <div class="document-card">
+                    <div class="document-header">
+                        <span class="document-title">สัญญาเช่า</span>
+                        ${tenant.contract_image ? `<a href="${tenant.contract_image}" target="_blank" class="btn btn-sm btn-icon"><i class="fas fa-expand"></i></a>` : ''}
+                    </div>
+                    <div class="document-preview" ${tenant.contract_image ? `onclick="window.open('${tenant.contract_image}', '_blank')"` : ''}>
+                        ${tenant.contract_image ?
+            `<img src="${tenant.contract_image}" alt="Contract">` :
+            `<div class="no-doc"><i class="fas fa-file-contract"></i><span>ไม่มีรูปสัญญาเช่า</span></div>`
+        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer" style="margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                <button class="btn btn-secondary" onclick="closeModal()">ปิดหน้าต่าง</button>
+                <button class="btn btn-primary" onclick="showEditTenantModal(${tenant.id})">
+                    <i class="fas fa-user-edit"></i> แก้ไขข้อมูล
+                </button>
+            </div>
+        </div>
+    `;
+
+    openModal(`รายละเอียดผู้เช่า: ${tenant.name}`, modalContent);
 }
 
 async function moveOutTenant(tenantId) {
