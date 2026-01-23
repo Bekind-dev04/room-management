@@ -1,15 +1,44 @@
 /**
- * Room Management System - Fake Data Seeder
+ * Room Management System - Refined Fake Data Seeder
+ * Features: Unique Thai Names, 65-70% Occupancy, Randomized Meter Usage
  * Period: May 2568 - Jan 2569 (BE)
  */
 
 const pool = require('../config/database');
 
+const FIRST_NAMES = [
+    'สมชาย', 'สมศรี', 'วิชัย', 'นภา', 'ธนา', 'เกียรติ', 'อารี', 'มานะ', 'ชูชาติ', 'ดารณี',
+    'ประเสริฐ', 'ประคอง', 'อำนาจ', 'รัตนา', 'ยุพา', 'ศิริ', 'บุญเลิศ', 'นิธิ', 'กมล', 'จินตนา',
+    'เกรียงไกร', 'พงษ์ศักดิ์', 'สุรฉัตร', 'กฤษณา', 'วิไลลักษณ์', 'สัญชัย', 'วัฒนา', 'วรรณา', 'สุชาติ', 'นงนุช',
+    'อนุสรณ์', 'นฤมล', 'เฉลิม', 'พจนา', 'อภิชาติ', 'เบญจมาศ', 'จรูญ', 'ดวงใจ', 'สุวรรณ', 'มาลี'
+];
+
+const LAST_NAMES = [
+    'ใจดี', 'มีสุข', 'รักธรรม', 'แจ่มใส', 'พารวย', 'ศรีสุวรรณ', 'วงศ์วาน', 'มั่นคง', 'เรืองรอง', 'นุ่มนวล',
+    'ยอดเยี่ยม', 'กล้าหาญ', 'สายชล', 'ทองคำ', 'เจริญสุข', 'บุญชู', 'ดวงดารา', 'สว่างวงศ์', 'สมบัติ', 'ทวีสิน',
+    'เกษตรกร', 'ประสิทธิชัย', 'แก้ววิจิตร', 'พินิจกุล', 'พงษ์พานิช', 'เลิศล้ำ', 'ศิริสวัสดิ์', 'นรากูล', 'บุญเหลือ', 'ศิริโรจน์'
+];
+
+function getRandomName() {
+    const f = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)];
+    const l = LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)];
+    return `${f} ${l}`;
+}
+
 async function seed() {
-    console.log('🚀 Starting Data Seeding...');
+    console.log('🚀 Starting Refined Data Seeding...');
 
     try {
-        // 1. Get Settings
+        // 1. Cleanup Phase
+        console.log('🧹 Cleaning up existing fake data...');
+        // We delete tenants with "(จำลอง)" or those created for seeding
+        // For safety/speed, we truncate readings and bills for the period or completely for dev
+        await pool.query('DELETE FROM bills');
+        await pool.query('DELETE FROM meter_readings');
+        await pool.query('UPDATE rooms SET is_occupied = 0');
+        await pool.query('DELETE FROM tenants'); // Clear all for a fresh start with occupancy logic
+
+        // 2. Get Settings
         const [settingsRows] = await pool.query('SELECT setting_key, setting_value FROM settings');
         const settings = {};
         settingsRows.forEach(row => settings[row.setting_key] = row.setting_value);
@@ -18,110 +47,100 @@ async function seed() {
         const electricRate = parseFloat(settings.electric_rate || 8);
         const trashFee = parseFloat(settings.trash_fee || 30);
 
-        // 2. Get Rooms
+        // 3. Get Rooms
         const [rooms] = await pool.query('SELECT * FROM rooms');
         if (rooms.length === 0) {
-            console.error('❌ No rooms found. Please add floors and rooms first.');
+            console.error('❌ No rooms found.');
             return;
         }
 
-        // 3. Ensure Tenants exist for each room
-        for (const room of rooms) {
-            const [tenants] = await pool.query('SELECT id FROM tenants WHERE room_id = ? AND is_active = 1', [room.id]);
-            if (tenants.length === 0) {
-                const fakeNames = ['สมชาย ใจดี', 'สมศรี มีสุข', 'วิชัย รักรัก', 'นภา แจ่มใส', 'ธนา พารวย'];
-                const fakeName = fakeNames[Math.floor(Math.random() * fakeNames.length)] + ' (จำลอง)';
-                const [result] = await pool.query(
-                    'INSERT INTO tenants (room_id, name, phone, move_in_date, is_active) VALUES (?, ?, ?, ?, ?)',
-                    [room.id, fakeName, '0812345678', '2025-01-01', true]
-                );
-                await pool.query('UPDATE rooms SET is_occupied = 1 WHERE id = ?', [room.id]);
-                console.log(`👤 Created tenant for Room ${room.room_number}`);
-            }
+        // 4. Assign Tenants with 65-70% Occupancy
+        const occupancyRate = 0.65 + (Math.random() * 0.05); // 0.65 to 0.70
+        const totalRooms = rooms.length;
+        const targetOccupied = Math.floor(totalRooms * occupancyRate);
+
+        // Shuffle rooms to randomize occupancy
+        const shuffledRooms = [...rooms].sort(() => Math.random() - 0.5);
+        const occupiedRooms = shuffledRooms.slice(0, targetOccupied);
+
+        console.log(`🏠 Target Occupancy: ${targetOccupied}/${totalRooms} rooms (~${(occupancyRate * 100).toFixed(1)}%)`);
+
+        const tenantsMap = new Map(); // room_id -> active_tenant_id
+
+        for (const room of occupiedRooms) {
+            const name = getRandomName();
+            const [result] = await pool.query(
+                'INSERT INTO tenants (room_id, name, phone, move_in_date, is_active) VALUES (?, ?, ?, ?, ?)',
+                [room.id, name, `08${Math.floor(10000000 + Math.random() * 90000000)}`, '2025-01-01', true]
+            );
+            tenantsMap.set(room.id, result.insertId);
+            await pool.query('UPDATE rooms SET is_occupied = 1 WHERE id = ?', [room.id]);
         }
 
-        // 4. Generate Readings and Bills
-        // Months: May 2568 - Jan 2569 (BE) -> 2025-05 to 2026-01 (AD)
+        // 5. Generate Readings and Bills (May 2568 - Jan 2569 BE)
         const period = [
-            { month: 5, year: 2025 },
-            { month: 6, year: 2025 },
-            { month: 7, year: 2025 },
-            { month: 8, year: 2025 },
-            { month: 9, year: 2025 },
-            { month: 10, year: 2025 },
-            { month: 11, year: 2025 },
-            { month: 12, year: 2025 },
-            { month: 1, year: 2026 }
+            { m: 5, y: 2025 }, { m: 6, y: 2025 }, { m: 7, y: 2025 }, { m: 8, y: 2025 },
+            { m: 9, y: 2025 }, { m: 10, y: 2025 }, { m: 11, y: 2025 }, { m: 12, y: 2025 }, { m: 1, y: 2026 }
         ];
 
-        // Base readings for each room (to ensure continuity)
-        const currentReadings = {};
+        const readingCache = {}; // room_id -> {water, electric}
 
-        for (const { month, year } of period) {
-            console.log(`📅 Seeding Period: ${month}/${year + 543}`);
+        for (const { m, y } of period) {
+            const displayDate = `${m}/${y + 543}`;
+            console.log(`📅 Processing: ${displayDate}`);
 
             for (const room of rooms) {
-                // Get latest reading to continue from
-                if (!currentReadings[room.id]) {
-                    currentReadings[room.id] = {
-                        water: Math.floor(Math.random() * 100),
-                        electric: Math.floor(Math.random() * 500)
+                // Initialize cache if new
+                if (!readingCache[room.id]) {
+                    readingCache[room.id] = {
+                        water: Math.floor(Math.random() * 50),
+                        electric: Math.floor(Math.random() * 200)
                     };
                 }
 
-                const prevWater = currentReadings[room.id].water;
-                const prevElectric = currentReadings[room.id].electric;
+                const prevW = readingCache[room.id].water;
+                const prevE = readingCache[room.id].electric;
 
-                // Add usage
-                const waterUnits = Math.floor(Math.random() * 10) + 2; // 2-12 units
-                const electricUnits = Math.floor(Math.random() * 150) + 50; // 50-200 units
+                // Random usage (Higher in hot months, randomized per room)
+                const usageFactor = (m >= 4 && m <= 6) ? 1.5 : 1.0;
+                const waterUsage = Math.floor((Math.random() * 8 + 2) * usageFactor);
+                const electricUsage = Math.floor((Math.random() * 120 + 30) * usageFactor);
 
-                const currWater = prevWater + waterUnits;
-                const currElectric = prevElectric + electricUnits;
+                const currW = prevW + waterUsage;
+                const currE = prevE + electricUsage;
 
-                currentReadings[room.id].water = currWater;
-                currentReadings[room.id].electric = currElectric;
+                readingCache[room.id].water = currW;
+                readingCache[room.id].electric = currE;
 
-                // A. Insert Meter Reading
-                try {
+                // Insert Reading
+                await pool.query(
+                    `INSERT INTO meter_readings (room_id, reading_month, reading_year, water_previous, water_current, electric_previous, electric_current, reading_date) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [room.id, m, y + 543, prevW, currW, prevE, currE, `${y}-${m.toString().padStart(2, '0')}-01`]
+                );
+
+                // Insert Bill if room had a tenant
+                const tenantId = tenantsMap.get(room.id);
+                if (tenantId) {
+                    const invoiceNo = `INV-${(y + 543).toString().substring(2)}${m.toString().padStart(2, '0')}-${room.room_number}`;
+                    const wAmt = waterUsage * waterRate;
+                    const eAmt = electricUsage * electricRate;
+                    const total = room.room_price + wAmt + eAmt + trashFee;
+
                     await pool.query(
-                        `INSERT INTO meter_readings (room_id, reading_month, reading_year, water_previous, water_current, electric_previous, electric_current, reading_date) 
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                         ON DUPLICATE KEY UPDATE water_current = VALUES(water_current), electric_current = VALUES(electric_current)`,
-                        [room.id, month, year + 543, prevWater, currWater, prevElectric, currElectric, `${year}-${month.toString().padStart(2, '0')}-01`]
+                        `INSERT INTO bills (invoice_no, room_id, tenant_id, bill_month, bill_year, room_price, water_units, water_rate, water_amount, electric_units, electric_rate, electric_amount, trash_fee, total_amount, is_paid)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                        [invoiceNo, room.id, tenantId, m, y + 543, room.room_price, waterUsage, waterRate, wAmt, electricUsage, electricRate, eAmt, trashFee, total, (m < 1 || y < 2026)]
                     );
-                } catch (e) {
-                    console.log(`   Readings update failed for Room ${room.room_number} (Month ${month}): ${e.message}`);
-                }
-
-                // B. Generate Bill
-                const [tenantRow] = await pool.query('SELECT id FROM tenants WHERE room_id = ? AND is_active = 1', [room.id]);
-                if (tenantRow.length > 0) {
-                    const tenantId = tenantRow[0].id;
-                    const waterAmount = waterUnits * waterRate;
-                    const electricAmount = electricUnits * electricRate;
-                    const total = room.room_price + waterAmount + electricAmount + trashFee;
-                    const invoiceNo = `INV-${(year + 543).toString().substring(2)}${month.toString().padStart(2, '0')}-${room.room_number}`;
-
-                    try {
-                        await pool.query(
-                            `INSERT INTO bills (invoice_no, room_id, tenant_id, bill_month, bill_year, room_price, water_units, water_rate, water_amount, electric_units, electric_rate, electric_amount, trash_fee, total_amount, is_paid)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                             ON DUPLICATE KEY UPDATE total_amount = VALUES(total_amount)`,
-                            [invoiceNo, room.id, tenantId, month, year + 543, room.room_price, waterUnits, waterRate, waterAmount, electricUnits, electricRate, electricAmount, trashFee, total, true]
-                        );
-                    } catch (e) {
-                        console.log(`   Bill update failed for Room ${room.room_number}: ${e.message}`);
-                    }
                 }
             }
         }
 
-        console.log('✅ Seeding Completed Successfully!');
+        console.log('✅ Refined Seeding Completed!');
         process.exit(0);
 
-    } catch (error) {
-        console.error('❌ Seeding Failed:', error);
+    } catch (err) {
+        console.error('❌ Error during seeding:', err);
         process.exit(1);
     }
 }
